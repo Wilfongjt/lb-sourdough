@@ -22,13 +22,17 @@ A starter for an API backed by a single table.
 
 
 # Setup
-1. Configure
-   1. Environment (.env)
-   2. Manually Configure woden: Run docker-compose
-   3. Get a woden: Curl a worden
-2. Register an Application
-   1. Create an Application record
-   2. Check proper application creation: Curl an Application  
+1. Get Server Running
+   * Environment (.env)
+   * Launch docker-compose
+   * Check server connection: Curl a woden
+2. Get Client Talking to Server
+   * Manually configure woden in client environment
+3. Register an Application on the Server
+   * Create an Application record
+   * Check proper application creation: Curl an api-token  
+4. Get Application Talking to the RegisterAPI
+   * Manually configure api-token in client environment
 3. Register an Application User record
    1. Create a actor
    2. Check proper actor creation: Curl a actor
@@ -38,7 +42,8 @@ _4. Signin to Application_
 
 
 ## Setup
-  1.1. Configure .env (place .env in folder with docker-compose.yml)
+  1.1. Environment (.env)
+  * place .env in folder with docker-compose.yml
   ```
       POSTGRES_DB=application_db
       POSTGRES_USER=postgres
@@ -51,10 +56,10 @@ _4. Signin to Application_
 
   1.2. Fireup docker-compose:
   ```
+      # cd to folder with docker-compose.yml
       docker-compose up
   ```
 
-  3. Get a woden from the docker-compose start up or get one from postgres with woden()
   4. Set WODEN environment variable:
   ```
       # this woden will work but may break in the future
@@ -101,41 +106,77 @@ _4. Signin to Application_
 # DB Overview
 
 application_db
+
     api_schema
+
         woden ()
+
         register columns: (id, type, form, password, active, created, updated)
+
             app: atts: (id, type, app-name, version, username, [password], token)
+
               insert app (Authorization: woden)(creates:app-token)
+
               select app (Authorization: woden)(returns:app-token)
+
             actor: atts: (id, type, app_id, username,[password])
+
               insert actor (Authorization: app-token)
+
               select actor (app-token)(returns: actor-token)
+
               update actor (actor-token)
+
               delete/deactivate actor (actor-token)
+
         adoption columns: (id, type, form, active, created, updated)
+
             adoption
+
               insert adoption (actor-token)
+
               update adoption (actor-token)
+
               delete adoption (actor-token)
+
 roles
+
     api_guest
+
     app_guest
+
     actor_editor
+
 tokens
+
       woden: claims: (iss, sub, name, role, type)
+
         type: app
+
         role: api_guest
+
       app-token: claims: (iss, sub, name, role, type)  
+
         _iss: LyttleBit_
+
         _sub: _
+
         _name: <application-name>_
+
         _roles:[app_guest]_
+
         _type: actor_
+
       _actor-token: claims: (iss, sub, name, role, type)_
+
         _iss:_
+
         _sub:_
+
         _name: <username>_
+
         _roles: []_
+
         _type:_
 
 # History
