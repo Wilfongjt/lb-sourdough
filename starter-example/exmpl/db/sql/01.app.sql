@@ -1,4 +1,4 @@
-\c postgres;
+\c postgres
 
 -- create db object
 -- create role
@@ -12,7 +12,7 @@ _custom is {"role":"api_guest","type":"app"}
 app_form is
 user_form is
 (api)              (Validation)   (TABLE)   (TRIGGER)       (FUNCTION)
-woden()                                                     sign(_custom, current_setting('app.jwt_secret')::TEXT,  'HS256'::TEXT)
+woden()                                                     sign(_custom, current_setting('app.settings.jwt_secret')::TEXT,  'HS256'::TEXT)
 app(app_form JSON) app_validate   register  register_trig   register_trig_func
 user(user_form JSON)
 
@@ -31,12 +31,16 @@ user(user_form JSON)
     resolution: (add PGRST_JWT_SECRET to Postrest part of docker-compose)
 
 * issue: "JWSError JWSInvalidSignature"
-    resolution: (check the docker-compose PGRST_JWT_SECRET password value, should be same as app.jwt_secret value)
+    resoluton: make sure WODEN is set in client environment
+    resolution: (check the docker-compose PGRST_JWT_SECRET password value, should be same as app.settings.jwt_secret value)
     resolution: (check that sign() is using the correct JWT_SECRET value)
     resolution: (replace the WODEN envirnement variable called by curl)
     resolution: POSTGRES_SCHEMA and PGRST_DB_SCHEMA should be the same
-    resolution: remove image, docker rmi application_db
-    try: payoad in trigger has to match payload in woden function
+    resolution: remove image, docker rmi exmpl_db
+    resolution: put quotes around the export WORDEN=""
+    try: ?payoad in trigger has to match payload in woden function?
+    try: set env variables out side of  client
+    try: reboot
 
 * issue: "hint":"No function matches the given name and argument types. You might need to add explicit type casts.","details":null,"code":"42883","message":"function app(type => text) does not exist"
     evaluation: looks like the JSONB type doesnt translate via curl. JSON object is passed as TEXT. Postgres doesnt have a method pattern that matches "app(TEXT)"
@@ -86,16 +90,27 @@ extra code
 --------------
 -- Environment
 --------------
-\set postgres_jwt_secret `echo "'$POSTGRES_JWT_SECRET'"`;
-\set lb_guest_password `echo "'$LB_GUEST_PASSWORD'"`;
+--\set postgres_jwt_secret `echo "'$POSTGRES_JWT_SECRET'"`
+
+--\set postgres_jwt_secret `echo "'$POSTGRES_JWT_SECRET'"`
+--\set lb_guest_password `echo "'$LB_GUEST_PASSWORD'"`
+
 --\set postgres_db `echo "$POSTGRES_DB"`;
 --\set postgres_schema `echo "$POSTGRES_SCHEMA"`;
---select :'lb_guest_password';
---select :postgres_jwt_secret;
+--select :lb_guest_password;
+--select :postgres_jwt_secret ;
+--------------
+-- Environment
+--------------
+
+\set postgres_jwt_secret `echo "'$POSTGRES_JWT_SECRET'"`
+\set lb_guest_password `echo "'$LB_GUEST_PASSWORD'"`
+
+-- select :lb_guest_password;
+-- select :postgres_jwt_secret ;
 --------------
 -- DATABASE
 --------------
--- Permissions:
 
 DROP DATABASE IF EXISTS application_db;
 CREATE DATABASE application_db;
@@ -105,7 +120,7 @@ CREATE DATABASE application_db;
 ---------------
 -- REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
-\c application_db;
+\c application_db
 
 CREATE SCHEMA if not exists api_schema;
 
@@ -113,6 +128,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;;
 CREATE EXTENSION IF NOT EXISTS pgtap;;
 CREATE EXTENSION IF NOT EXISTS pgjwt;;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 
 -----------------
 -- HOST variables
@@ -123,8 +139,18 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 --------------
 -- bad practice to put passwords in scripts
 --ALTER DATABASE application_db SET "app.testdb" TO 'f';
-ALTER DATABASE application_db SET "app.jwt_secret" TO :postgres_jwt_secret;
--- select current_setting('app.jwt_secret');
+--select :POSTGRES_JWT_SECRET;
+--ALTER DATABASE application_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
+--ALTER DATABASE application_db SET 'app.settings.jwt_secret' TO :postgres_jwt_secret;
+ALTER DATABASE application_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
+-- ALTER DATABASE application_db SET "jwt-secret" TO :postgres_jwt_secret;
+
+-- select current_setting('app.settings.jwt_secret') as has_secret;
+--select current_setting('jwt-secret') as has_secret;
+
+--select current_setting('jwt_secret') as has_secret;
+
+
 -- doenst work ALTER DATABASE application_db SET "custom.authenticator_secret" TO 'mysecretpassword';
 --------------
 -- GUEST
@@ -164,7 +190,7 @@ CREATE ROLE api_guest nologin; -- permissions to execute app() and insert type=a
 -- each app gets its own _guest role  i.e., example_guest which is <group>_guest {"type":"user", "":""}
 -- each app gets its own _user role   i.e., example_user which is <group>_user
 --CREATE ROLE example_user nologin; -- permissions to execute user() and insert type=user into register
---CREATE ROLE aad_guest nologin;
+--CREATE ROLE app_guest nologin;
 ---------------
 -- SCHEMA: api_schema
 ---------------
@@ -174,6 +200,9 @@ SET search_path TO api_schema, public;
 ----------------
 -- TYPE: JWT_TOKEN
 ----------------
+CREATE TYPE woden_token AS (
+  woden text
+);
 CREATE TYPE jwt_token AS (
   token text
 );
@@ -212,10 +241,9 @@ Declare _token TEXT;
 Declare _payload_claims JSON;
 Declare _payload_claims_tmpl TEXT;
 Declare _form JSONB;
--- Declare _password TEXT;
---Declare _app_data JSONB;
---Declare _app_tmpl TEXT;
+
 BEGIN
+    -- This trigger handles tokens for "app"
    -- create application token
    -- application specific login
    -- '{"type":"%s",  "group":"%s",  "name":"%s@%s", "role": "%s_guest"}';
@@ -227,15 +255,15 @@ BEGIN
         --_payload_claims_tmpl := '{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s@%s"}'::TEXT;
         -- iss, sub, role, type, name
         -- create custom
-        _payload_claims := format('{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s@%s"}'::TEXT,
+        _payload_claims := format('{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s", "type":"%s"}'::TEXT,
                                   'LyttleBit',
-                                  'API Admin',
-                                  'api_guest',
+                                  'application',
+                                  'app_guest',
                                   NEW.exmpl_form ->> 'app-name',
-                                  NEW.exmpl_form ->> 'version'
+                                  'actor'
                                   )::JSON;
 
-        _token := sign( _payload_claims, current_setting('app.jwt_secret')::TEXT,  'HS256'::TEXT);
+        _token := sign( _payload_claims, current_setting('app.settings.jwt_secret')::TEXT,  'HS256'::TEXT);
         _form := format('{"token": "%s"}',_token)::JSONB;
         -- overide id, id should be <name>@<verson> after templating
         NEW.exmpl_id := NEW.exmpl_form ->> 'name';
@@ -243,7 +271,7 @@ BEGIN
         NEW.exmpl_form := NEW.exmpl_form || _form;
         -- encrypt password
         NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
-      --ELSEIF (NEW.exmpl_form ->> 'type' = 'user') then
+      --ELSEIF (NEW.exmpl_form ->> 'type' = 'actor') then
 
       END IF;
 
@@ -279,10 +307,10 @@ CREATE TRIGGER register_ins_upd_trigger
 -- || access    |
 -- || app(JSON) |
 
-CREATE FUNCTION woden() RETURNS jwt_token AS $$
+CREATE FUNCTION woden() RETURNS woden_token AS $$
   -- make token to execute app(JSON)
   SELECT public.sign(
-    row_to_json(r), current_setting('app.jwt_secret')
+    row_to_json(r), current_setting('app.settings.jwt_secret')
   ) AS woden
   FROM (
     SELECT
@@ -293,11 +321,12 @@ CREATE FUNCTION woden() RETURNS jwt_token AS $$
       'app' as type
   ) r;
 $$ LANGUAGE sql;
+
 /*
-CREATE FUNCTION woden() RETURNS jwt_token AS $$
+CREATE FUNCTION woden() RETURNS woden_token AS $$
 
   SELECT public.sign(
-    row_to_json(r), current_setting('app.jwt_secret')
+    row_to_json(r), current_setting('app.settings.jwt_secret')
   ) AS woden
   FROM (
     SELECT
@@ -316,7 +345,7 @@ $$ LANGUAGE sql;
 /*
 CREATE FUNCTION woden() RETURNS jwt_token AS $$
   SELECT public.sign(
-    row_to_json(r), current_setting('app.jwt_secret')
+    row_to_json(r), current_setting('app.settings.jwt_secret')
   ) AS woden
   FROM (
     SELECT
@@ -335,14 +364,15 @@ $$ LANGUAGE sql;
 
 CREATE FUNCTION bad_woden() RETURNS jwt_token AS $$
   SELECT public.sign(
-    row_to_json(r), current_setting('app.jwt_secret')
+    row_to_json(r), current_setting('app.settings.jwt_secret')
   ) AS woden
   FROM (
     SELECT
-      'bad_role'::text as roles,
+      'bad_role'::text as role,
       'bad_type' as type
   ) r;
 $$ LANGUAGE sql;
+
 
 ------------
 -- FUNCTION: IS_VALID_WODEN
@@ -359,12 +389,12 @@ AS $$
 
 BEGIN
   -- does role in token match expected role
-  -- use db parameter app.jwt_secret
+  -- use db parameter app.settings.jwt_secret
   -- process the token
   -- return true/false
   good:=false;
 
-  select payload ->> 'role' as role into actual_role  from verify(_token, current_setting('app.jwt_secret'));
+  select payload ->> 'role' as role into actual_role  from verify(_token, current_setting('app.settings.jwt_secret'));
 
   if expected_role = actual_role then
     good := true;
@@ -383,6 +413,8 @@ app_validate(form JSONB) RETURNS JSONB
 AS $$
 
   BEGIN
+
+
     -- confirm all required attributes are in form
     if not(form ? 'type' and form ? 'name' and form ? 'owner' and form ? 'password') then
        return '{"status":"400","msg":"Bad Request, missing one or more form attributes"}'::JSONB;
@@ -431,6 +463,7 @@ RETURNS JSONB AS $$
   Declare _password TEXT;
 
   BEGIN
+
     -- get request values
     _jwt_role := current_setting('request.jwt.claim.role','t');
     _jwt_type := current_setting('request.jwt.claim.type','t');
@@ -473,7 +506,7 @@ RETURNS JSONB AS $$
         WHEN check_violation then
             return '{"status":"400", "msg":"Bad Request, validation error"}'::JSONB;
         WHEN others then
-            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "form":%s, "type":"%s", "password":"%s"}',SQLSTATE, _form, _jwt_type, _password)::JSONB;
+            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "type":"%s", "password":"%s", "form":%s}',SQLSTATE, _jwt_type, _password, _form)::JSONB;
     END;
 
     -- rc := format('{"status": "200", "form": %s , "role":"%s", "type":"%s"}', _form::TEXT, _jwt_role, _type)::JSONB;
@@ -514,7 +547,8 @@ grant EXECUTE on FUNCTION app_validate(JSONB) to api_guest;
 
 grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to api_guest;
 
--- grant EXECUTE on FUNCTION round_trip() to api_guest;
+
+
 
 -- It’s a good practice to create a dedicated role for connecting to the database, instead of using the highly privileged postgres role.
 -- So we’ll do that, name the role authenticator and also grant him the ability to switch to the api_guest role :
@@ -541,8 +575,13 @@ where specific_schema = 'api_schema';
 ----------------
 -- WODEN VALUES
 ----------------
-select woden();
-select bad_woden();
+--select woden() ;
+--select current_setting('app.settings.jwt_secret') as jwt_secret;
+
+--select format('export WODEN="%s"',replace(replace(woden()::TEXT,'(',''),')',''));
+--select format('export WODEN="%s"',replace(replace(bad_woden()::TEXT,'(',''),')',''));
+
+
 ----------------
 -- CURL
 ----------------
@@ -573,7 +612,8 @@ curl http://localhost:3100/rpc/bad_woden -X GET \
      -H "Content-Type: application/json"
 
 # put token in environment
-export WODEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJhZG1pbmlzdHJhdGUiLCJyb2xlIjoiYXBpX2d1ZXN0IiwidHlwZSI6ImFwcCJ9.B_v1zTCMlWCZ3K9yLG_MmHucZLEz0TI7-28nYL9t21M"
+export WODEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiYXBpX2d1ZXN0IiwidHlwZSI6ImFwcCJ9.AskzpKl1sMipgHb6U2snkyEJKQ_WQi7xx75Xf_tMYtI"
+export WODEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiYXBpX2d1ZXN0IiwidHlwZSI6ImFwcCJ9.AskzpKl1sMipgHb6U2snkyEJKQ_WQi7xx75Xf_tMYtI"
 export BADWODEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYmFkX3JvbGUiLCJ0eXBlIjoiYmFkX3R5cGUifQ.Hhs_kC0xypud3AhjGIlLO35xEVAtl4_QwP02gR25lPE"
 
 # fail with bad token

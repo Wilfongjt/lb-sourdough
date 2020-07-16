@@ -17,7 +17,7 @@ SET search_path TO api_schema, public;
 -----------------
 -- FUNCTION: ACTOR
 -----------------
--- Create or Update a user
+-- Create or Update an Actor
 -- Role:
 -- Permissions: EXECUTE
 -- Returns: JSONB
@@ -25,7 +25,7 @@ SET search_path TO api_schema, public;
 CREATE OR REPLACE FUNCTION actor(form JSON)
 RETURNS JSONB AS $$
   Declare rc jsonb;
-  Declare _model_user JSONB;
+  Declare _model_actor JSONB;
   Declare _form JSONB;
   Declare _jwt_role TEXT;
   Declare _jwt_type TEXT;
@@ -43,9 +43,9 @@ RETURNS JSONB AS $$
 
     _form := form::JSONB;
     -- evaluate the token
-    _model_user := current_setting('app.lb_actor_editor')::jsonb;
+    _model_actor := current_setting('app.lb_actor_editor')::jsonb;
 
-    if not(_model_user ->> 'role' = _jwt_role) then
+    if not(_model_actor ->> 'role' = _jwt_role) then
         return format('{"status": "401", "msg":"Unauthorized bad token", "jwt_role":"%s"}', _jwt_role)::JSONB;
     end if;
     -- confirm all required attributes are in form
@@ -85,7 +85,7 @@ RETURNS JSONB AS $$
   END;
 $$ LANGUAGE plpgsql;
 -----------------
--- FUNCTION: USER_VALIDATE
+-- FUNCTION: ACTOR_VALIDATE
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
@@ -95,7 +95,7 @@ AS $$
 
   BEGIN
     -- confirm all required attributes are in form
-    if not(form ? 'type' and form ? 'app_id' and form ? 'username' and form ? 'password') then
+    if not(form ? 'type' and form ? 'app_name' and form ? 'name' and form ? 'password') then
        return '{"status":"400","msg":"Bad Request, missing one or more form attributes"}'::JSONB;
     end if;
     -- validate attribute values
@@ -103,16 +103,16 @@ AS $$
        return '{"status":"400", "msg":"Bad Request type value."}'::JSONB;
     end if;
     -- proper application name
-    if not( exists( select regexp_matches(form ->> 'app_id', '^[a-z][a-z_]+@[1-9]+\.[0-9]+\.[0-9]+') ) ) then
-       return '{"status":"400", "msg":"Bad Request, bad applicaton id."}'::JSONB;
+    if not( exists( select regexp_matches(form ->> 'app_name', '^[a-z][a-z_]+@[1-9]+\.[0-9]+\.[0-9]+') ) ) then
+       return '{"status":"400", "msg":"Bad Request, bad application name."}'::JSONB;
     end if;
     -- proper password
     if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
        return '{"status":"400", "msg":"Bad Request, bad password."}'::JSONB;
     end if;
-    -- proper username ... email
-    if not( exists( select regexp_matches(form ->> 'username', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-       return format('{"status":"400", "msg":"Bad Request, bad owner name.", "username":"%s"}', form ->> 'username')::JSONB;
+    -- proper name ... email
+    if not( exists( select regexp_matches(form ->> 'name', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
+       return format('{"status":"400", "msg":"Bad Request, bad name.", "name":"%s"}', form ->> 'name')::JSONB;
        -- return '{"status":"400", "msg":"Bad Request, bad owner name."}'::JSONB;
     end if;
     return '{"status": "200"}'::JSONB;
@@ -132,6 +132,13 @@ CREATE OR REPLACE FUNCTION actor(id TEXT) RETURNS JSONB
 AS $$
   Select exmpl_form from register where exmpl_id=id;
 $$ LANGUAGE sql;
+---------------------
+-- GRANT: APP_GUEST
+---------------------
+grant usage on schema api_schema to app_guest;
+
+grant insert on register to app_guest;
+grant EXECUTE on FUNCTION actor(JSON) to app_guest; -- upsert
 
 ---------------------
 -- GRANT: ACTOR_GUEST
@@ -139,7 +146,7 @@ $$ LANGUAGE sql;
 grant usage on schema api_schema to actor_editor;
 
 grant select on register to actor_editor;
-grant insert on register to app_guest;
+
 grant update on register to actor_editor;
 grant TRIGGER on register to actor_editor;
 
@@ -151,6 +158,9 @@ grant EXECUTE on FUNCTION actor_validate(JSONB) to actor_editor;
 
 grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to actor_editor;
 
+grant app_guest to authenticator;
+
+
 /*
 
 # Create Actor
@@ -158,7 +168,10 @@ curl http://localhost:3100/rpc/actor -X POST \
      -H "Authorization: Bearer $APPTOKEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "actor", "name":"my_app@1.0.0", "username":"smithr@smith.com", "password":"a1A!aaaa"}'
-
+     -d '{"type": "actor", "name":"smithr@smith.com", "app_name":"my_app@1.0.0", "password":"a1A!aaaa"}'
+type
+name
+app_name
+password
 
 */
