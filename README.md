@@ -23,6 +23,43 @@ A starter for an API backed by a single table.
 * Wodens do not expire
 * Wodens can be replaced
 
+# Architecture 
+
+## Woden
+Administrate portfolio of applications
+Originator of application tokens
+Recomend One per organization 
+Init
+* Manually make a woden, https://jwt.io  
+* configure woden in your environment
+
+Storage
+    * register 
+Functions           
+    * app()             
+    * actor-owner() 
+    * woden()
+
+## Application-Configuration
+Custom configuration for an application.
+One per application 
+Init 
+* get app-token from Woden
+* configure in enviroment
+
+Storage
+    * application
+Functions
+    * actor-admin()
+    * token-app()
+
+## Application
+Storage
+    * application
+Function    
+    * actor-user()
+    * token()
+*
 
 # Overview
 ## Get Server Running (up.sh)
@@ -110,7 +147,50 @@ A starter for an API backed by a single table.
            -d '{"username":"", "password":""}'
   ```
 
-# DB Overview
+  # Woden Model Overview
+`
+  woden_db
+      api_schema
+      
+          register columns: (id, type, form, password, active, created, updated)
+              
+              app: atts: (id, type, app-name, version, username, [password], token)
+                insert app (Authorization: woden)(creates:app-token)
+                select app (Authorization: woden)(returns:app-token)_
+     
+              owner: atts: (id, type, name, [password])
+                insert owner (Authorization: woden-token)
+                select owner (app-token)(returns: owner-token)
+                update owner (owner-token)
+                delete/deactivate owner (owner-token)
+
+  apis
+      app(JSON)
+      app(TEXT)
+      actor(JSON)
+      actor(TEXT)
+  roles
+      api_guest
+      app_guest
+      actor_editor
+  tokens
+        woden: claims: (iss, sub, name, role, type)
+          type: app
+          role: api_guest
+        app-token: claims: (iss, sub, name, role, type)  
+          _iss: LyttleBit_
+          _sub: _
+          _name: <application-name>_
+          _roles:[app_guest]_
+          _type: actor_
+        _actor-token: claims: (iss, sub, name, role, type)_
+          _iss:_
+          _sub:_
+          _name: <username>_
+          _roles: []_
+          _type:_
+
+# Exmpl Model Overview
 
 application_db
     api_schema
@@ -119,7 +199,7 @@ application_db
             app: atts: (id, type, app-name, version, username, [password], token)
               insert app (Authorization: woden)(creates:app-token)
               select app (Authorization: woden)(returns:app-token)
-            actor: atts: (id, type, app_id, username,[password])
+            actor: atts: (id, type, app_id, name,[password])
               insert actor (Authorization: app-token)
               select actor (app-token)(returns: actor-token)
               update actor (actor-token)

@@ -2,19 +2,19 @@
 ------------------------
 -- TESTs
 ------------------------
-\c application_db;
+\c woden_db;
 
-SET search_path TO api_schema, public;
+SET search_path TO app_schema, public;
 
 BEGIN;
 
   SELECT plan(2);
   -- Insert
   SELECT is (
-    api_schema.app('{"type": "app",
+    app_schema.app('{"type": "app",
       "id": "my_app@1.0.0",
       "name": "my_app",
-      "owner": "me@someplace.com",
+      "owner_id": "me@someplace.com",
       "password": "a1A!aaaa",
       "group":"register"}'::JSON
     ),
@@ -24,7 +24,7 @@ BEGIN;
 
   -- select
   SELECT matches(
-    api_schema.app('my_app@1.0.0'::TEXT)::TEXT,
+    app_schema.app('my_app@1.0.0'::TEXT)::TEXT,
     '[a-zA-Z\.0-9_]+',
     'app - select from register by id and check token'::TEXT
   );

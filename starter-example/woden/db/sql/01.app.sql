@@ -8,7 +8,7 @@
 -- do something
 -- drop db object
 /*
-_custom is {"role":"api_guest","type":"app"}
+_custom is {"role":"app_guest","type":"app"}
 app_form is
 user_form is
 (api)              (Validation)   (TABLE)   (TRIGGER)       (FUNCTION)
@@ -24,8 +24,8 @@ user(user_form JSON)
 * user
 
 
-* issue: ERROR:  database "application_db" already exists
-    resolution: DROP DATABASE IF EXISTS application_db;
+* issue: ERROR:  database "woden_db" already exists
+    resolution: DROP DATABASE IF EXISTS woden_db;
 
 * issue: "Server lacks JWT secret"
     resolution: (add PGRST_JWT_SECRET to Postrest part of docker-compose)
@@ -66,11 +66,11 @@ user(user_form JSON)
 * issue:
       description: FATAL:  password authentication failed for user "authenticator"
       evaluation: password changes seem to cause this
-      try: removing the docker images...docker rmi application_db
+      try: removing the docker images...docker rmi woden_db
 
 * issue:
       schema \"exmpl_schema\" does not exist
-      try: docker rmi application_db ... didnt work
+      try: docker rmi woden_db ... didnt work
       try: reboot... didnt work
       try: check docker-compose.yml, change POSTGRES_SCHEMA to match
       try: dropping postgres images
@@ -112,17 +112,17 @@ extra code
 -- DATABASE
 --------------
 
-DROP DATABASE IF EXISTS application_db;
-CREATE DATABASE application_db;
+DROP DATABASE IF EXISTS woden_db;
+CREATE DATABASE woden_db;
 
 ---------------
 -- Security, dont let users create anything in public
 ---------------
 -- REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
-\c application_db
+\c woden_db
 
-CREATE SCHEMA if not exists api_schema;
+CREATE SCHEMA if not exists app_schema;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;;
 CREATE EXTENSION IF NOT EXISTS pgtap;;
@@ -138,12 +138,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- JWT
 --------------
 -- bad practice to put passwords in scripts
---ALTER DATABASE application_db SET "app.testdb" TO 'f';
+--ALTER DATABASE woden_db SET "app.testdb" TO 'f';
 --select :POSTGRES_JWT_SECRET;
---ALTER DATABASE application_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
---ALTER DATABASE application_db SET 'app.settings.jwt_secret' TO :postgres_jwt_secret;
-ALTER DATABASE application_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
--- ALTER DATABASE application_db SET "jwt-secret" TO :postgres_jwt_secret;
+--ALTER DATABASE woden_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
+--ALTER DATABASE woden_db SET 'app.settings.jwt_secret' TO :postgres_jwt_secret;
+ALTER DATABASE woden_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
+-- ALTER DATABASE woden_db SET "jwt-secret" TO :postgres_jwt_secret;
 
 -- select current_setting('app.settings.jwt_secret') as has_secret;
 --select current_setting('jwt-secret') as has_secret;
@@ -151,23 +151,23 @@ ALTER DATABASE application_db SET "app.settings.jwt_secret" TO :postgres_jwt_sec
 --select current_setting('jwt_secret') as has_secret;
 
 
--- doenst work ALTER DATABASE application_db SET "custom.authenticator_secret" TO 'mysecretpassword';
+-- doenst work ALTER DATABASE woden_db SET "custom.authenticator_secret" TO 'mysecretpassword';
 --------------
 -- GUEST
 --------------
 -- add new application
 --
--- ALTER DATABASE application_db SET "app.lb_app_tmpl" TO '{"type":"%s",  "group":"%s",  "name":"%s@%s", "role": "%s_guest"}';
---ALTER DATABASE application_db SET "app.app_payload_claims" TO     '{"type":"app", "group":"api",     "app-name":"api",     "version":"1.0.0"}';
+-- ALTER DATABASE woden_db SET "app.lb_app_tmpl" TO '{"type":"%s",  "group":"%s",  "name":"%s@%s", "role": "%s_guest"}';
+--ALTER DATABASE woden_db SET "app.app_payload_claims" TO     '{"type":"app", "group":"api",     "app-name":"api",     "version":"1.0.0"}';
 
---ALTER DATABASE application_db SET "app.lb_app_data_api" TO     '{"type":"app", "group":"api",     "app-name":"api",     "version":"1.0.0"}';
---ALTER DATABASE application_db SET "app.lb_app_data_example" TO '{"type":"app", "group":"example", "app-name":"example", "version":"1.0.0"}';
-ALTER DATABASE application_db SET "app.lb_api_guest" To '{"role":"api_guest"}';
--- ALTER DATABASE application_db SET "app.lb_application_form" TO '{"type": "app", "name": "my_app@1.0.0", "group":"example", "owner": "me@someplace.com", "password": "a1A!aaaa"}';
--- ALTER DATABASE application_db SET "app.lb_user_form" TO        '{"type": "user", "app": "my_app@1.0.0", "name": "me@someplace.com", "password": "a1A!aaaa", "roles": [""]}';
+--ALTER DATABASE woden_db SET "app.lb_app_data_api" TO     '{"type":"app", "group":"api",     "app-name":"api",     "version":"1.0.0"}';
+--ALTER DATABASE woden_db SET "app.lb_app_data_example" TO '{"type":"app", "group":"example", "app-name":"example", "version":"1.0.0"}';
+ALTER DATABASE woden_db SET "app.lb_app_guest" To '{"role":"app_guest"}';
+-- ALTER DATABASE woden_db SET "app.lb_application_form" TO '{"type": "app", "name": "my_app@1.0.0", "group":"example", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}';
+-- ALTER DATABASE woden_db SET "app.lb_user_form" TO        '{"type": "user", "app": "my_app@1.0.0", "name": "me@someplace.com", "password": "a1A!aaaa", "roles": [""]}';
 --'{"type":"","app_name":"","version":"","username":"","password":"","token":""}'
 --'{"type":"user","app_id":"","username":"","password":"",}'
--- Add Application api_guest, insert application-form
+-- Add Application app_guest, insert application-form
 -- Insert Application User,         <app-prefix>_guest
 -- Authenticate Application User,   <app-prefix>_login
 -- Update Application User,         <app-prefix>_user
@@ -186,16 +186,16 @@ ALTER DATABASE application_db SET "app.lb_api_guest" To '{"role":"api_guest"}';
 
 CREATE ROLE authenticator noinherit login password :lb_guest_password ;
 
-CREATE ROLE api_guest nologin; -- permissions to execute app() and insert type=app into register
+CREATE ROLE app_guest nologin; -- permissions to execute app() and insert type=app into register
 -- each app gets its own _guest role  i.e., example_guest which is <group>_guest {"type":"user", "":""}
 -- each app gets its own _user role   i.e., example_user which is <group>_user
 --CREATE ROLE example_user nologin; -- permissions to execute user() and insert type=user into register
 --CREATE ROLE app_guest nologin;
 ---------------
--- SCHEMA: api_schema
+-- SCHEMA: app_schema
 ---------------
 
-SET search_path TO api_schema, public;
+SET search_path TO app_schema, public;
 
 ----------------
 -- TYPE: JWT_TOKEN
@@ -219,12 +219,11 @@ create table if not exists
         exmpl_id TEXT PRIMARY KEY DEFAULT uuid_generate_v4 (),
         exmpl_type varchar(256) not null check (length(exmpl_type) < 256),
         exmpl_form jsonb not null,
-        exmpl_password varchar(256) not null,
         exmpl_active BOOLEAN NOT NULL DEFAULT true,
         exmpl_created timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
         exmpl_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP
     );
-
+--  exmpl_password varchar(256) not null,
 ----------------
 -- INDEX
 ----------------
@@ -241,26 +240,32 @@ Declare _token TEXT;
 Declare _payload_claims JSON;
 Declare _payload_claims_tmpl TEXT;
 Declare _form JSONB;
-
+Declare _pw TEXT;
 BEGIN
     -- This trigger handles tokens for "app"
    -- create application token
    -- application specific login
-   -- '{"type":"%s",  "group":"%s",  "name":"%s@%s", "role": "%s_guest"}';
+
 
     IF (TG_OP = 'INSERT') THEN
-      IF (NEW.exmpl_form ->> 'type' = 'app') then
+      IF (NEW.exmpl_form ->> 'type' = 'owner') then
+        NEW.exmpl_id := NEW.exmpl_form ->> 'email';
+        --_form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.exmpl_form ->> 'email', crypt(NEW.exmpl_password, gen_salt('bf')) )::JSONB;
+        --_pw := crypt(NEW.exmpl_form ->> 'password', gen_salt('bf'));
+        _form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.exmpl_form ->> 'email', crypt(NEW.exmpl_form ->> 'password', gen_salt('bf')) )::JSONB;
+
+        NEW.exmpl_form := NEW.exmpl_form  || _form;
+        -- encrypt password
+        --NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
+      ELSEIF (NEW.exmpl_form ->> 'type' = 'app') then
         -- create custom token for a new app
-        --: iss (issuer), exp (expiration time), sub (subject)
-        --_payload_claims_tmpl := '{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s@%s"}'::TEXT;
-        -- iss, sub, role, type, name
-        -- create custom
+
         _payload_claims := format('{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s", "type":"%s"}'::TEXT,
                                   'LyttleBit',
                                   'application',
                                   'app_guest',
                                   NEW.exmpl_form ->> 'app-name',
-                                  'actor'
+                                  'owner'
                                   )::JSON;
 
         _token := sign( _payload_claims, current_setting('app.settings.jwt_secret')::TEXT,  'HS256'::TEXT);
@@ -270,8 +275,8 @@ BEGIN
         -- add token to form
         NEW.exmpl_form := NEW.exmpl_form || _form;
         -- encrypt password
-        NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
-      --ELSEIF (NEW.exmpl_form ->> 'type' = 'actor') then
+        --NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
+      --ELSEIF (NEW.exmpl_form ->> 'type' = 'owner') then
 
       END IF;
 
@@ -306,7 +311,7 @@ CREATE TRIGGER register_ins_upd_trigger
 -- iss, sub, role, type, name
 -- || access    |
 -- || app(JSON) |
-
+/*
 CREATE FUNCTION woden() RETURNS woden_token AS $$
   -- make token to execute app(JSON)
   SELECT public.sign(
@@ -317,11 +322,11 @@ CREATE FUNCTION woden() RETURNS woden_token AS $$
       'LyttleBit' as iss,
       'Origin'::text as sub,
       'Woden'::text as name,
-      'api_guest'::text as role,
+      'app_guest'::text as role,
       'app' as type
   ) r;
 $$ LANGUAGE sql;
-
+*/
 /*
 CREATE FUNCTION woden() RETURNS woden_token AS $$
 
@@ -330,7 +335,7 @@ CREATE FUNCTION woden() RETURNS woden_token AS $$
   ) AS woden
   FROM (
     SELECT
-      'api_guest'::text as role,
+      'app_guest'::text as role,
       'app' as type
   ) r;
 $$ LANGUAGE sql;
@@ -349,7 +354,7 @@ CREATE FUNCTION woden() RETURNS jwt_token AS $$
   ) AS woden
   FROM (
     SELECT
-      'api_guest'::TEXT as role,
+      'app_guest'::TEXT as role,
       'app'::TEXT as type,
       extract(epoch from now())::integer + 300 AS exp
   ) r;
@@ -361,7 +366,7 @@ $$ LANGUAGE sql;
 -- Permissions: EXECUTE
 -- Returns: jwt_token
 -- token doenst expire
-
+/*
 CREATE FUNCTION bad_woden() RETURNS jwt_token AS $$
   SELECT public.sign(
     row_to_json(r), current_setting('app.settings.jwt_secret')
@@ -372,7 +377,7 @@ CREATE FUNCTION bad_woden() RETURNS jwt_token AS $$
       'bad_type' as type
   ) r;
 $$ LANGUAGE sql;
-
+*/
 
 ------------
 -- FUNCTION: IS_VALID_WODEN
@@ -414,7 +419,7 @@ AS $$
 
   BEGIN
     -- confirm all required attributes are in form
-    if not(form ? 'type' and form ? 'id' and form ? 'name' and form ? 'owner' and form ? 'password') then
+    if not(form ? 'type' and form ? 'id' and form ? 'name' and form ? 'owner_id' ) then
        return format('{"status":"400","msg":"Bad Request, missing one or more form attributes","form":%s}', form::TEXT)::JSONB;
     end if;
     -- validate attribute values
@@ -431,13 +436,13 @@ AS $$
     end if;
 
     -- proper password
-    if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
-       return '{"status":"400", "msg":"Bad Request, bad password."}'::JSONB;
-    end if;
+    --if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
+    --   return '{"status":"400", "msg":"Bad Request, bad password."}'::JSONB;
+    --end if;
 
     -- proper owner name ... email
-    if not( exists( select regexp_matches(form ->> 'owner', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-       return format('{"status":"400", "msg":"Bad Request, bad owner name.", "owner":"%s"}', form ->> 'owner')::JSONB;
+    if not( exists( select regexp_matches(form ->> 'owner_id', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
+       return format('{"status":"400", "msg":"Bad Request, bad owner id.", "owner_id":"%s"}', form ->> 'owner_id')::JSONB;
     end if;
 
     return '{"status": "200"}'::JSONB;
@@ -450,7 +455,7 @@ $$ LANGUAGE plpgsql;
 -- inserts an application record into the system
 -- Permissions: EXECUTE
 -- Returns: JSONB
--- Role: api_guest
+-- Role: app_guest
 
 CREATE OR REPLACE FUNCTION app(form JSON)
 RETURNS JSONB AS $$
@@ -460,7 +465,7 @@ RETURNS JSONB AS $$
   Declare _jwt_role TEXT;
   Declare _jwt_type TEXT;
   Declare _validation JSONB;
-  Declare _password TEXT;
+  --Declare _password TEXT;
 
   BEGIN
 
@@ -468,13 +473,13 @@ RETURNS JSONB AS $$
     _jwt_role := current_setting('request.jwt.claim.role','t');
     _jwt_type := current_setting('request.jwt.claim.type','t');
     if _jwt_role is NULL or _jwt_type is NULL then
-      _jwt_role := 'api_guest';
+      _jwt_role := 'app_guest';
       _jwt_type := 'app';
     end if;
 
     _form := form::JSONB;
     -- evaluate the token
-    _model_user := current_setting('app.lb_api_guest')::jsonb;
+    _model_user := current_setting('app.lb_app_guest')::jsonb;
 
     if not(_model_user ->> 'role' = _jwt_role) then
         return '{"status": "401", "msg":"Unauthorized bad token"}'::JSONB;
@@ -489,24 +494,24 @@ RETURNS JSONB AS $$
     --     return '{"status": "400", "msg": "Update not supported"}'::JSONB;
     -- end if;
 
-    if _form ? 'password' then
-        _password := _form ->> 'password';
-        -- never store password in form
-        _form := _form - 'password';
-    end if;
+    --if _form ? 'password' then
+    --    _password := _form ->> 'password';
+    --    -- never store password in form
+    --    _form := _form - 'password';
+    --end if;
 
     BEGIN
             INSERT INTO register
-                (exmpl_type, exmpl_form, exmpl_password)
+                (exmpl_type, exmpl_form)
             VALUES
-                (_jwt_type, _form, _password );
+                (_jwt_type, _form );
     EXCEPTION
         WHEN unique_violation THEN
             return '{"status":"400", "msg":"Bad Request, duplicate error"}'::JSONB;
         WHEN check_violation then
             return '{"status":"400", "msg":"Bad Request, validation error"}'::JSONB;
         WHEN others then
-            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "type":"%s", "password":"%s", "form":%s}',SQLSTATE, _jwt_type, _password, _form)::JSONB;
+            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "type":"%s", "form":%s}',SQLSTATE, _jwt_type, _form)::JSONB;
     END;
 
     -- rc := format('{"status": "200", "form": %s , "role":"%s", "type":"%s"}', _form::TEXT, _jwt_role, _type)::JSONB;
@@ -525,39 +530,39 @@ AS $$
   Select exmpl_form from register where exmpl_id=id;
 $$ LANGUAGE sql;
 ----------------
--- GRANT: API_GUEST
+-- GRANT: app_guest
 ----------------
 -- Next make a role to use for anonymous web requests.
 -- When a request comes in, PostgREST will switch into this role in the database to run queries.
 --
 
-grant usage on schema api_schema to api_guest;
+grant usage on schema app_schema to app_guest;
 
-grant select on register to api_guest;
-grant insert on register to api_guest;
-grant update on register to api_guest;
-grant TRIGGER on register to api_guest;
+grant select on register to app_guest;
+grant insert on register to app_guest;
+grant update on register to app_guest;
+grant TRIGGER on register to app_guest;
 
-grant EXECUTE on FUNCTION register_upsert_trigger_func to api_guest;
+grant EXECUTE on FUNCTION register_upsert_trigger_func to app_guest;
 
-grant EXECUTE on FUNCTION app(JSON) to api_guest;
-grant EXECUTE on FUNCTION app(TEXT) to api_guest;
+grant EXECUTE on FUNCTION app(JSON) to app_guest;
+grant EXECUTE on FUNCTION app(TEXT) to app_guest;
 
-grant EXECUTE on FUNCTION app_validate(JSONB) to api_guest;
+grant EXECUTE on FUNCTION app_validate(JSONB) to app_guest;
 
-grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to api_guest;
+grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to app_guest;
 
 
 
 
 -- It’s a good practice to create a dedicated role for connecting to the database, instead of using the highly privileged postgres role.
--- So we’ll do that, name the role authenticator and also grant him the ability to switch to the api_guest role :
+-- So we’ll do that, name the role authenticator and also grant him the ability to switch to the app_guest role :
 ------------------
 -- GRANT: AUTHENTICATOR
 ------------------
 --create role authenticator noinherit login password 'mysecretpassword';
-grant api_guest to authenticator;
--- grant usage on schema api_schema to authenticator;
+grant app_guest to authenticator;
+-- grant usage on schema app_schema to authenticator;
 
 -- Switching occures when the user is authenticated and the jWT token contains an existing role
 -----------------
@@ -567,10 +572,10 @@ grant api_guest to authenticator;
 /*
 SELECT grantee, privilege_type
 FROM information_schema.role_table_grants
-WHERE table_schema='api_schema';
+WHERE table_schema='app_schema';
 
 select * from information_schema.routine_privileges
-where specific_schema = 'api_schema';
+where specific_schema = 'app_schema';
 */
 ----------------
 -- WODEN VALUES
@@ -587,8 +592,8 @@ where specific_schema = 'api_schema';
 ----------------
 /*
 Applications
-'{"type": "app", "name": "my_app@1.0.0", "group":"my_app", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
-'{"type": "app", "name": "my_app@2.0.0", "group":"my_app", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
+'{"type": "app", "name": "my_app@1.0.0", "group":"my_app", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
+'{"type": "app", "name": "my_app@2.0.0", "group":"my_app", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
 
 Users
 '{"type": "user", "apps": ["my_app@1.0.0"], "name": "me@someplace.com", "password": "a1A!aaaa"}'
@@ -628,42 +633,42 @@ curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "bad", "name": "my-app@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
+     -d '{"type": "bad", "name": "my-app@1.0.0", "group":"register", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
 
 # fail with bad application name value
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "app", "name": "my!app@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
+     -d '{"type": "app", "name": "my!app@1.0.0", "group":"register", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
 
 # fail with bad password value
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "password"}'
+     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner_id": "me@someplace.com", "password": "password"}'
 
 # fail with bad owner name value
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner": "mesomeplace.com", "password": "P1!password"}'
+     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner_id": "mesomeplace.com", "password": "P1!password"}'
 
 # success with id
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"id": "xxx", "type": "app", "name": "my_app@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
+     -d '{"id": "xxx", "type": "app", "name": "my_app@1.0.0", "group":"register", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
 
 # ADD APP success with good attributes, values and token
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
+     -d '{"type": "app", "name": "my_app@1.0.0", "group":"register", "owner_id": "me@someplace.com", "password": "a1A!aaaa"}'
 
  # GET APP success with good attributes, values and token
  curl http://localhost:3100/rpc/app -X POST \

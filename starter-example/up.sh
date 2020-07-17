@@ -1,6 +1,5 @@
 
 source ./_conf.sh
-env
 
 # keep stuff from build docker system prune
 
@@ -46,4 +45,3 @@ docker-compose up
 
 # show the environment variables
 # docker-compose exec web env
-
