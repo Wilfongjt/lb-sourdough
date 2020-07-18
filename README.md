@@ -160,14 +160,14 @@ Function
               
             owner API: {id, type, |email|, name, [password]}
             
-                | Func   | call        | token         | VERB | return |
-                | ====== | =========== | ============= | ==== | ====== |
-                | insert | owner(JSON) | <woden-token> | POST | <status> |
-                | signin | owner(TEXT,TEXT) | <woden-token> | POST | <owner> | 
-                | select | owner(TEXT) | <app-token>   | GET  | <json> |
-                | select | owner(TEXT, JSON) | <app-token> | GET | <status> |
-                | update | owner(JSON) | <owner-token> | POST | <status> |
-                | delete | owner(????,????) | <owner-token> | DELETE | <status> |
+| Func   | call        | token         | VERB | return |
+| ====== | =========== | ============= | ==== | ====== |
+| insert | owner(JSON) | <woden-token> | POST | <status> |
+| signin | owner(TEXT,TEXT) | <woden-token> | POST | <owner> | 
+| select | owner(TEXT) | <app-token>   | GET  | <json> |
+| select | owner(TEXT, JSON) | <app-token> | GET | <status> |
+| update | owner(JSON) | <owner-token> | POST | <status> |
+| delete | owner(????,????) | <owner-token> | DELETE | <status> |
               
             app API: {id, type, |name|, owner_id, token}
             
