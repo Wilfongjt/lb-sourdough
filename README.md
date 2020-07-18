@@ -153,26 +153,30 @@ Function
 * Provide an app-token for a specific application
 * 
  ```
-woden_db
-app_schema
-      
-Register TABLE columns: id, type, form, active, created, updated
+DATABASE:   woden_db
+SCHEMA:     app_schema
+TABLE:      Register columns: id, type, form, active, created, updated
+INDEX:      id
+ROLE:       app_guest
+ROLE:       owner_editor
+
+API: Owner, form: {id, type, |email|, name, [password]}
+               function           token           VERB     return
+               --------           -----           ----     ------ 
+    * insert , owner(JSON)      , <woden-token> , POST   , <status> 
+    * signin , owner(TEXT,TEXT) , <woden-token> , POST   , <owner>  
+    * select , owner(TEXT)      , <app-token>   , GET    , <owner> 
+    * select , owner(TEXT, JSON), <app-token>   , GET    , <owner> 
+    * update , owner(JSON)      , <owner-token> , POST   , <status> 
+    * delete , owner(????,????) , <owner-token> , DELETE , <status> 
+
+    <status> is {"status":"", "msg":""} 
+    <owner> is {"status":"200", "token":"<app-token>"}
+    <woden-token> is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "app_guest", "type": "owner"}
               
-Owner API: {id, type, |email|, name, [password]}
-            
-    * insert    owner(JSON)      , <woden-token> , POST   , <status> 
-    * signin    owner(TEXT,TEXT) , <woden-token> , POST   , <owner>  
-    * select    owner(TEXT)      , <app-token>   , GET    , <json> 
-    * select    owner(TEXT, JSON), <app-token>   , GET    , <status> 
-    * update    owner(JSON)      , <owner-token> , POST   , <status> 
-    * delete    owner(????,????) , <owner-token> , DELETE , <status> 
-
-<status> is {"status":"", "msg":""} 
-<owner> is {"status":"200", "token":"<app-token>"}
-
-              
-App API: {id, type, |name|, owner_id, token}
-
+API: App, form: {id, type, |name|, owner_id, token}
+               function           token           VERB     return
+               --------           -----           ----     ------ 
     * insert , app(JSON)        , <owner-token> , POST   , <status> 
     * select , app(TEXT)        , <owner-token> , GET    , <status> 
     * select , app(TEXT, JSON)  , <????-token>  , GET    , <status> 
