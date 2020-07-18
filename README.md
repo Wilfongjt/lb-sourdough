@@ -161,7 +161,7 @@ Function
             owner API: {id, type, |email|, name, [password]}
             
 | Func   | call        | token         | VERB | return |
-| ====== | =========== | ============= | ==== | ====== |
+| ------- | -------------- | ------------------- | ---- | ---------- |
 | insert | owner(JSON) | <woden-token> | POST | <status> |
 | signin | owner(TEXT,TEXT) | <woden-token> | POST | <owner> | 
 | select | owner(TEXT) | <app-token>   | GET  | <json> |
