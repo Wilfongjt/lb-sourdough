@@ -160,28 +160,25 @@ Register TABLE columns: id, type, form, active, created, updated
               
 Owner API: {id, type, |email|, name, [password]}
             
-| Func   | call        | token         | VERB | return |
-| ------- | -------------- | ------------------- | ---- | ---------- |
-| insert | owner(JSON) | \<woden-token> | POST | \<status> |
-| signin | owner(TEXT,TEXT) | \<woden-token> | POST | \<owner> | 
-| select | owner(TEXT) | \<app-token>   | GET  | \<json> |
-| select | owner(TEXT, JSON) | \<app-token> | GET | \<status> |
-| update | owner(JSON) | \<owner-token> | POST | \<status> |
-| delete | owner(????,????) | \<owner-token> | DELETE | \<status> |
 
-<status> is {"status":"", "msg":""} 
-<owner> is {"status":"200", "token":"<app-token>"}
+        * insert | owner(JSON) | \<woden-token> | POST | \<status> 
+        * signin | owner(TEXT,TEXT) | \<woden-token> | POST | \<owner>  
+        * select | owner(TEXT) | \<app-token>   | GET  | \<json> 
+        * select | owner(TEXT, JSON) | \<app-token> | GET | \<status> 
+        * update | owner(JSON) | \<owner-token> | POST | \<status> 
+        * delete | owner(????,????) | \<owner-token> | DELETE | \<status> 
+
+        *\<status>* is {"status":"", "msg":""} 
+        *\<owner>* is {"status":"200", "token":"<app-token>"}
 
               
-App API: {id, type, |name|, owner_id, token}
+        App API: {id, type, |name|, owner_id, token}
 
-| Func   | call        | token         | VERB | return |
-| ------- | -------------- | ------------------- | ---- | ---------- |
-| insert | app(JSON) | <owner-token> | POST | <status> |
-| select | app(TEXT) | <owner-token> | GET | <status> |
-| select | app(TEXT, JSON) | <????-token> | GET | <status> |
-| update | app(JSON) | <????-token> | POST | <status> |
-| delete | app(????,????) | <????-token> | DELETE | <status> |
+        * insert | app(JSON) | <owner-token> | POST | <status> |
+        * select | app(TEXT) | <owner-token> | GET | <status> |
+        * select | app(TEXT, JSON) | <????-token> | GET | <status> |
+        * update | app(JSON) | <????-token> | POST | <status> |
+        * delete | app(????,????) | <????-token> | DELETE | <status> |
             
                 
         * [ ] is encrypted value
