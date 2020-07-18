@@ -413,8 +413,7 @@ END;  $$ LANGUAGE plpgsql;
 -----------------
 -- Permissions: EXECUTE
 -- Returns: BOOLEAN
-CREATE OR REPLACE FUNCTION
-app_validate(form JSONB) RETURNS JSONB
+CREATE OR REPLACE FUNCTION app_validate(form JSONB) RETURNS JSONB
 AS $$
 
   BEGIN
@@ -524,10 +523,9 @@ $$ LANGUAGE plpgsql;
 --------------------
 -- FUNCTION: APP(TEXT)
 --------------------
-CREATE OR REPLACE FUNCTION
-app(id TEXT) RETURNS JSONB
+CREATE OR REPLACE FUNCTION app(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from register where exmpl_id=id;
+  Select exmpl_form from register where exmpl_id=id and type='app';
 $$ LANGUAGE sql;
 ----------------
 -- GRANT: app_guest

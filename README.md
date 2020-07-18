@@ -147,32 +147,54 @@ Function
            -d '{"username":"", "password":""}'
   ```
 
-  # Woden Model Overview
-`
-  woden_db
-      api_schema
+# Woden API Overview
+* Keep a list of applications
+* Keep a list of application owners
+* Provide an app-token for a specific application
+* 
+ 
+ woden_db
+      app_schema
       
-          register columns: (id, type, form, password, active, created, updated)
+        register TABLE columns: id, type, form, active, created, updated
               
-              app: atts: (id, type, app-name, version, username, [password], token)
-                insert app (Authorization: woden)(creates:app-token)
-                select app (Authorization: woden)(returns:app-token)_
-     
-              owner: atts: (id, type, name, [password])
-                insert owner (Authorization: woden-token)
-                select owner (app-token)(returns: owner-token)
-                update owner (owner-token)
-                delete/deactivate owner (owner-token)
-
-  apis
-      app(JSON)
-      app(TEXT)
-      actor(JSON)
-      actor(TEXT)
+            owner API: {id, type, |email|, name, [password]}
+            
+                | Func   | call        | token         | VERB | return |
+                | ====== | =========== | ============= | ==== | ====== |
+                | insert | owner(JSON) | <woden-token> | POST | <status> |
+                | signin | owner(TEXT,TEXT) | <woden-token> | POST | <owner> | 
+                | select | owner(TEXT) | <app-token>   | GET  | <json> |
+                | select | owner(TEXT, JSON) | <app-token> | GET | <status> |
+                | update | owner(JSON) | <owner-token> | POST | <status> |
+                | delete | owner(????,????) | <owner-token> | DELETE | <status> |
+              
+            app API: {id, type, |name|, owner_id, token}
+            
+                | Func   | call        | token         | VERB | return |
+                | ====== | =========== | ============= | ==== | ====== |
+                | insert | app(JSON) | <owner-token> | POST | <status> |
+                | select | app(TEXT) | <owner-token> | GET | <status> |
+                | select | app(TEXT, JSON) | <????-token> | GET | <status> |
+                | update | app(JSON) | <????-token> | POST | <status> |
+                | delete | app(????,????) | <????-token> | DELETE | <status> |
+            
+                
+        * [ ] is encrypted value
+        * | | is id value or part of a compound id value
+        * ( ) is parameter list
+        * { } is json attribute list
+        * < > is value/variable
+        * id attribute triggers an update
+        * ???? is a marker for undefined
+        * table has index on id 
+        
+        <status> is {"status":"", "msg":""} 
+        <owner> is {"status":"200", "token":"<app-token>"}
   roles
-      api_guest
-      app_guest
-      actor_editor
+  
+       app_guest
+       owner_editor
   tokens
         woden: claims: (iss, sub, name, role, type)
           type: app

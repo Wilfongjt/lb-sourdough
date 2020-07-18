@@ -23,7 +23,7 @@ curl http://localhost:3100/rpc/owner -X POST \
      -H "Authorization: Bearer $WODEN"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"type": "owner", "email":"me@someplace.com", "name": "me@someplace.com", "password": "a1A!aaaa"}'
+     -d '{"type":"owner", "email":"me@someplace.com", "name":"me@someplace.com", "password":"a1A!aaaa"}'
 
 ###############
 # add an application to db
