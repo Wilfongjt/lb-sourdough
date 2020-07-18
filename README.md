@@ -153,31 +153,35 @@ Function
 * Provide an app-token for a specific application
 * 
  
- woden_db
-      app_schema
+ ## woden_db
+ ### app_schema
       
-        register TABLE columns: id, type, form, active, created, updated
+Register TABLE columns: id, type, form, active, created, updated
               
-            owner API: {id, type, |email|, name, [password]}
+Owner API: {id, type, |email|, name, [password]}
             
 | Func   | call        | token         | VERB | return |
 | ------- | -------------- | ------------------- | ---- | ---------- |
-| insert | owner(JSON) | \<woden-token> | POST | <status> |
-| signin | owner(TEXT,TEXT) | \<woden-token> | POST | <owner> | 
-| select | owner(TEXT) | \<app-token>   | GET  | <json> |
-| select | owner(TEXT, JSON) | \<app-token> | GET | <status> |
-| update | owner(JSON) | \<owner-token> | POST | <status> |
-| delete | owner(????,????) | \<owner-token> | DELETE | <status> |
+| insert | owner(JSON) | \<woden-token> | POST | \<status> |
+| signin | owner(TEXT,TEXT) | \<woden-token> | POST | \<owner> | 
+| select | owner(TEXT) | \<app-token>   | GET  | \<json> |
+| select | owner(TEXT, JSON) | \<app-token> | GET | \<status> |
+| update | owner(JSON) | \<owner-token> | POST | \<status> |
+| delete | owner(????,????) | \<owner-token> | DELETE | \<status> |
+
+<status> is {"status":"", "msg":""} 
+<owner> is {"status":"200", "token":"<app-token>"}
+
               
-            app API: {id, type, |name|, owner_id, token}
-            
-                | Func   | call        | token         | VERB | return |
-                | ====== | =========== | ============= | ==== | ====== |
-                | insert | app(JSON) | <owner-token> | POST | <status> |
-                | select | app(TEXT) | <owner-token> | GET | <status> |
-                | select | app(TEXT, JSON) | <????-token> | GET | <status> |
-                | update | app(JSON) | <????-token> | POST | <status> |
-                | delete | app(????,????) | <????-token> | DELETE | <status> |
+App API: {id, type, |name|, owner_id, token}
+
+| Func   | call        | token         | VERB | return |
+| ====== | =========== | ============= | ==== | ====== |
+| insert | app(JSON) | <owner-token> | POST | <status> |
+| select | app(TEXT) | <owner-token> | GET | <status> |
+| select | app(TEXT, JSON) | <????-token> | GET | <status> |
+| update | app(JSON) | <????-token> | POST | <status> |
+| delete | app(????,????) | <????-token> | DELETE | <status> |
             
                 
         * [ ] is encrypted value
@@ -189,8 +193,7 @@ Function
         * ???? is a marker for undefined
         * table has index on id 
         
-        <status> is {"status":"", "msg":""} 
-        <owner> is {"status":"200", "token":"<app-token>"}
+        
   roles
   
        app_guest
