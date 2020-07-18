@@ -160,12 +160,12 @@ Function
               
 **Owner** API: {id, type, |email|, name, [password]}
             
-* insert | owner(JSON) | \<woden-token> | POST | \<status> 
-* signin | owner(TEXT,TEXT) | \<woden-token> | POST | \<owner>  
-* select | owner(TEXT) | \<app-token>   | GET  | \<json> 
-* select | owner(TEXT, JSON) | \<app-token> | GET | \<status> 
-* update | owner(JSON) | \<owner-token> | POST | \<status> 
-* delete | owner(????,????) | \<owner-token> | DELETE | \<status> 
+* insert    owner(JSON) | \<woden-token> | POST | \<status> 
+* signin    owner(TEXT,TEXT) | \<woden-token> | POST | \<owner>  
+* select    owner(TEXT) | \<app-token>   | GET  | \<json> 
+* select    owner(TEXT, JSON) | \<app-token> | GET | \<status> 
+* update    owner(JSON) | \<owner-token> | POST | \<status> 
+* delete    owner(????,????) | \<owner-token> | DELETE | \<status> 
 
 **\<status>** is {"status":"", "msg":""} 
 **\<owner>** is {"status":"200", "token":"<app-token>"}
