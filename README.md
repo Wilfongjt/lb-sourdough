@@ -176,7 +176,7 @@ Owner API: {id, type, |email|, name, [password]}
 App API: {id, type, |name|, owner_id, token}
 
 | Func   | call        | token         | VERB | return |
-| ====== | =========== | ============= | ==== | ====== |
+| ------- | -------------- | ------------------- | ---- | ---------- |
 | insert | app(JSON) | <owner-token> | POST | <status> |
 | select | app(TEXT) | <owner-token> | GET | <status> |
 | select | app(TEXT, JSON) | <????-token> | GET | <status> |
