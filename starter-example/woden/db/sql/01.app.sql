@@ -191,6 +191,7 @@ CREATE ROLE app_guest nologin; -- permissions to execute app() and insert type=a
 -- each app gets its own _user role   i.e., example_user which is <group>_user
 --CREATE ROLE example_user nologin; -- permissions to execute user() and insert type=user into register
 --CREATE ROLE app_guest nologin;
+--CREATE ROLL process_logger_role nologin;
 ---------------
 -- SCHEMA: app_schema
 ---------------
@@ -246,7 +247,6 @@ BEGIN
    -- create application token
    -- application specific login
 
-
     IF (TG_OP = 'INSERT') THEN
       IF (NEW.exmpl_form ->> 'type' = 'owner') then
         NEW.exmpl_id := NEW.exmpl_form ->> 'email';
@@ -298,6 +298,30 @@ CREATE TRIGGER register_ins_upd_trigger
  FOR EACH ROW
  EXECUTE PROCEDURE register_upsert_trigger_func();
 
+ Create Or Replace FUNCTION http_response(_status text, _msg text) RETURNS JSON AS $$
+   SELECT
+     row_to_json(r)
+   FROM (
+     SELECT
+       _status as status,
+       _msg as msg
+   ) r;
+ $$ LANGUAGE sql;
+
+ -----------------
+ -- FUNCTION: http_response
+ -----------------
+
+ Create Or Replace FUNCTION http_response(_status text, _msg text) RETURNS JSON AS $$
+   SELECT
+     row_to_json(r)
+   FROM (
+     SELECT
+       _status as status,
+       _msg as msg
+   ) r;
+ $$ LANGUAGE sql;
+
 
 -----------------
 -- FUNCTION: WODEN
@@ -311,12 +335,14 @@ CREATE TRIGGER register_ins_upd_trigger
 -- iss, sub, role, type, name
 -- || access    |
 -- || app(JSON) |
-/*
-CREATE FUNCTION woden() RETURNS woden_token AS $$
-  -- make token to execute app(JSON)
+
+Create or Replace Function woden_token() RETURNS TEXT AS $$
+DECLARE rc TEXT;
+BEGIN
+  -- rc :=  'aaa.aaa.aaa';
   SELECT public.sign(
     row_to_json(r), current_setting('app.settings.jwt_secret')
-  ) AS woden
+  ) AS woden into rc
   FROM (
     SELECT
       'LyttleBit' as iss,
@@ -325,8 +351,18 @@ CREATE FUNCTION woden() RETURNS woden_token AS $$
       'app_guest'::text as role,
       'app' as type
   ) r;
+  return rc;
+END;  $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION woden() RETURNS JSON AS $$
+  -- make token to execute app(JSON)
+    SELECT row_to_json(r) as result
+    from
+      (SELECT '200' as status, 'OK' as msg, woden_token() as woden) r
+    ;
 $$ LANGUAGE sql;
-*/
+
 /*
 CREATE FUNCTION woden() RETURNS woden_token AS $$
 
@@ -462,7 +498,7 @@ RETURNS JSONB AS $$
   Declare _model_user JSONB;
   Declare _form JSONB;
   Declare _jwt_role TEXT;
-  Declare _jwt_type TEXT;
+  --Declare _jwt_type TEXT;
   Declare _validation JSONB;
   --Declare _password TEXT;
 
@@ -470,10 +506,10 @@ RETURNS JSONB AS $$
 
     -- get request values
     _jwt_role := current_setting('request.jwt.claim.role','t');
-    _jwt_type := current_setting('request.jwt.claim.type','t');
-    if _jwt_role is NULL or _jwt_type is NULL then
+    --_jwt_type := current_setting('request.jwt.claim.type','t');
+    if _jwt_role is NULL then
       _jwt_role := 'app_guest';
-      _jwt_type := 'app';
+      --_jwt_type := 'app';
     end if;
 
     _form := form::JSONB;
@@ -503,14 +539,14 @@ RETURNS JSONB AS $$
             INSERT INTO register
                 (exmpl_type, exmpl_form)
             VALUES
-                (_jwt_type, _form );
+                ('app', _form );
     EXCEPTION
         WHEN unique_violation THEN
             return '{"status":"400", "msg":"Bad Request, duplicate error"}'::JSONB;
         WHEN check_violation then
             return '{"status":"400", "msg":"Bad Request, validation error"}'::JSONB;
         WHEN others then
-            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "type":"%s", "form":%s}',SQLSTATE, _jwt_type, _form)::JSONB;
+            return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "type":"%s", "form":%s}',SQLSTATE, 'app', _form)::JSONB;
     END;
 
     -- rc := format('{"status": "200", "form": %s , "role":"%s", "type":"%s"}', _form::TEXT, _jwt_role, _type)::JSONB;
@@ -525,7 +561,7 @@ $$ LANGUAGE plpgsql;
 --------------------
 CREATE OR REPLACE FUNCTION app(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from register where exmpl_id=id and type='app';
+  Select exmpl_form from register where exmpl_id=id and exmpl_type='app';
 $$ LANGUAGE sql;
 ----------------
 -- GRANT: app_guest
@@ -533,24 +569,27 @@ $$ LANGUAGE sql;
 -- Next make a role to use for anonymous web requests.
 -- When a request comes in, PostgREST will switch into this role in the database to run queries.
 --
+--app_guest
+
 
 grant usage on schema app_schema to app_guest;
+-- table permissions
+grant insert on register to app_guest; -- C
+grant select on register to app_guest; -- R
+grant update on register to app_guest; -- U
+-- grant delete on register to app_guest; -- D
 
-grant select on register to app_guest;
-grant insert on register to app_guest;
-grant update on register to app_guest;
+-- Trigger permissions
 grant TRIGGER on register to app_guest;
-
+-- Function permissions
 grant EXECUTE on FUNCTION register_upsert_trigger_func to app_guest;
 
-grant EXECUTE on FUNCTION app(JSON) to app_guest;
-grant EXECUTE on FUNCTION app(TEXT) to app_guest;
+grant EXECUTE on FUNCTION app(JSON) to app_guest; -- C
+-- grant EXECUTE on FUNCTION app(TEXT) to app_guest;
 
 grant EXECUTE on FUNCTION app_validate(JSONB) to app_guest;
-
+-- Utilit function permissions
 grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to app_guest;
-
-
 
 
 -- It’s a good practice to create a dedicated role for connecting to the database, instead of using the highly privileged postgres role.
@@ -560,6 +599,7 @@ grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to app_guest;
 ------------------
 --create role authenticator noinherit login password 'mysecretpassword';
 grant app_guest to authenticator;
+
 -- grant usage on schema app_schema to authenticator;
 
 -- Switching occures when the user is authenticated and the jWT token contains an existing role

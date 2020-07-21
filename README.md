@@ -155,25 +155,57 @@ Function
  ```
 DATABASE:   woden_db
 SCHEMA:     app_schema
-TABLE:      Register columns: id, type, form, active, created, updated
+TABLE:      Register 
+COLUMNS:    id, type, form, active, created, updated
 INDEX:      id
 ROLE:       app_guest
 ROLE:       owner_editor
 
-API: Owner, form: {id, type, |email|, name, [password]}
-               function           token           VERB     return
-               --------           -----           ----     ------ 
-    * insert , owner(JSON)      , <woden-token> , POST   , <status> 
-    * signin , owner(TEXT,TEXT) , <woden-token> , POST   , <owner>  
-    * select , owner(TEXT)      , <app-token>   , GET    , <owner> 
-    * select , owner(TEXT, JSON), <app-token>   , GET    , <owner> 
-    * update , owner(JSON)      , <owner-token> , POST   , <status> 
-    * delete , owner(????,????) , <owner-token> , DELETE , <status> 
+API: Owner, CRUD
+    owner: {id, type, |email|, name, [password]}
+    
+               function           token           VERB     return   app_guest
+               --------           -----           ----     ------   --------- 
+    * insert , owner(owner::JSON),<woden-token> , POST   , <status> E
+    * select , owner(TEXT)      , <app-token>   , GET    , <owner>  N
+    * select , owner(TEXT, JSON), <app-token>   , GET    , <owner>  N
+    * update , owner(JSON)      , <owner-token> , POST   , <status> N
+    * delete , owner(????,????) , <owner-token> , DELETE , <status> N
+
+Permissions CRUDE: Create Read Update Delete Execute
+                    app_guest   owner_editor
+register                C           RUD
+C owner(JSON)           E
+R owner(TEXT)                       E
+U owner(TEXT, JSON)                 E
+D owner(????)                       E
+C app(JSON)                         E
+R app(TEXT)                         E
+U app(TEXT, JSON)                   E
+D app(????,????)                    E
+Rules:
+    * Anyone can add an owner
+    * Ownership is designated by the id in the owner record 
+    * User can only modifiy (UD) their own data, row specific
+    * User can see all applications in the portfolio
+    * Application is owned by the person who enters it
+    * 
 
     <status> is {"status":"", "msg":""} 
     <owner> is {"status":"200", "token":"<app-token>"}
-    <woden-token> is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "app_guest", "type": "owner"}
-              
+    <woden-token> is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "wdn_guest", "type": "owner"}
+    <app-token>   is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "????_guest", "type": "owner"}
+
+API: Signin, C
+    signin:  {"type":"signin", "name":"<email>", "password":"<TEXT>"}
+    
+    * insert , signin(signin::JSON), <woden-token> , POST   , <owner> 
+    
+    Dependencis
+    owner: 
+    <owner-token> is 
+
+
 API: App, form: {id, type, |name|, owner_id, token}
                function           token           VERB     return
                --------           -----           ----     ------ 
@@ -192,12 +224,13 @@ API: App, form: {id, type, |name|, owner_id, token}
 * id attribute triggers an update
 * ???? is a marker for undefined
 * table has index on id 
-```        
+
+       
         
   roles
-  
-       app_guest
-       owner_editor
+    app_guest
+    owner_editor
+ ```      
   tokens
         woden: claims: (iss, sub, name, role, type)
           type: app
@@ -214,6 +247,12 @@ API: App, form: {id, type, |name|, owner_id, token}
           _name: <username>_
           _roles: []_
           _type:_
+
+                    app_guest,  owner_editor
+        register    C           
+        
+        app(JSON)               
+        app(JSON)   
 
 # Exmpl Model Overview
 

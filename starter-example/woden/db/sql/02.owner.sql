@@ -5,13 +5,13 @@
 ----------------
 -- system variables
 ----------------
-ALTER DATABASE woden_db SET "app.lb_owner_editor" To '{"role":"app_guest"}';
+ALTER DATABASE woden_db SET "app.lb_editor_wdn" To '{"role":"app_guest"}';
 
 ---------------
 -- SCHEMA: app_schema
 ---------------
 --CREATE ROLE app_guest nologin;
-CREATE ROLE owner_editor nologin; -- permissions to execute app() and insert type=app into register
+CREATE ROLE editor_wdn nologin; -- permissions to execute app() and insert type=app into register
 
 SET search_path TO app_schema, public;
 -----------------
@@ -28,22 +28,21 @@ RETURNS JSONB AS $$
   Declare _model_owner JSONB;
   Declare _form JSONB;
   Declare _jwt_role TEXT;
-  Declare _jwt_type TEXT;
+  --Declare _jwt_type TEXT;
   Declare _validation JSONB;
   Declare _password TEXT;
 
   BEGIN
     -- claims check
     _jwt_role := current_setting('request.jwt.claim.role','t');
-    _jwt_type := current_setting('request.jwt.claim.type','t');
-    if _jwt_role is NULL or _jwt_type is NULL then
+    --_jwt_type := 'app';
+    if _jwt_role is NULL then
       _jwt_role := 'app_guest';
-      _jwt_type := 'owner';
     end if;
 
     _form := form::JSONB;
     -- evaluate the token
-    _model_owner := current_setting('app.lb_owner_editor')::jsonb;
+    _model_owner := current_setting('app.lb_editor_wdn')::jsonb;
 
     if not(_model_owner ->> 'role' = _jwt_role) then
         return format('{"status": "401", "msg":"Unauthorized bad token", "jwt_role":"%s"}', _jwt_role)::JSONB;
@@ -54,7 +53,7 @@ RETURNS JSONB AS $$
     if _validation ->> 'status' != '200' then
         return _validation;
     end if;
-
+    _form := _form || '{"type":"owner"}'::JSONB;
     --if _form ? 'password' then
     --    _password := _form ->> 'password';
     --    -- never store password in form
@@ -69,10 +68,10 @@ RETURNS JSONB AS $$
               INSERT INTO register
                   (exmpl_type, exmpl_form)
               VALUES
-                  (_jwt_type, _form);
+                  ('owner', _form);
       EXCEPTION
           WHEN unique_violation THEN
-              return '{"status":"400", "msg":"Bad Request, duplicate error"}'::JSONB;
+              return '{"status":"400", "msg":"Bad Request, duplicate owner"}'::JSONB;
           WHEN check_violation then
               return '{"status":"400", "msg":"Bad Request, validation error"}'::JSONB;
           WHEN others then
@@ -136,7 +135,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION owner(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from register where exmpl_id=id;
+  Select exmpl_form from register where exmpl_id=id and exmpl_type='owner';
 $$ LANGUAGE sql;
 ---------------------
 -- GRANT: APP_GUEST
@@ -149,20 +148,24 @@ grant EXECUTE on FUNCTION owner(JSON) to app_guest; -- upsert
 ---------------------
 -- GRANT: owner_GUEST
 ---------------------
-grant usage on schema app_schema to owner_editor;
+grant usage on schema app_schema to editor_wdn;
 
-grant select on register to owner_editor;
+grant insert on register to editor_wdn; -- C ... 'app' only
+grant select on register to editor_wdn; -- R ... 'owner', 'app'
+grant update on register to editor_wdn; -- U ... 'owner'
+-- grant delete on register to editor_wdn; -- D ... 'owner'
 
-grant update on register to owner_editor;
-grant TRIGGER on register to owner_editor;
+grant TRIGGER on register to editor_wdn; --
 
-grant EXECUTE on FUNCTION register_upsert_trigger_func to owner_editor;
-grant EXECUTE on FUNCTION owner(JSON) to owner_editor; -- upsert
-grant EXECUTE on FUNCTION owner(TEXT) to owner_editor; -- select
+grant EXECUTE on FUNCTION register_upsert_trigger_func to editor_wdn;
 
-grant EXECUTE on FUNCTION owner_validate(JSONB) to owner_editor;
+grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- upsert
+grant EXECUTE on FUNCTION owner(TEXT) to editor_wdn; -- select
+-- grant EXECUTE on FUNCTION owner(????) to editor_wdn; -- delete
 
-grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to owner_editor;
+grant EXECUTE on FUNCTION owner_validate(JSONB) to editor_wdn;
+
+grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to editor_wdn;
 
 --grant app_guest to authenticator;
 
