@@ -1,26 +1,14 @@
 
-\c woden_db;
+\c wdn_db;
 
---CREATE SCHEMA if not exists app_schema;
 ----------------
 -- system variables
 ----------------
-ALTER DATABASE woden_db SET "app.lb_editor_wdn" To '{"role":"app_guest"}';
 
----------------
--- SCHEMA: app_schema
----------------
---CREATE ROLE app_guest nologin;
-CREATE ROLE editor_wdn nologin; -- permissions to execute app() and insert type=app into register
-
-SET search_path TO app_schema, public;
+SET search_path TO wdn_schema, public;
 -----------------
 -- FUNCTION: owner
 -----------------
--- Create or Update an owner
--- Role:
--- Permissions: EXECUTE
--- Returns: JSONB
 
 CREATE OR REPLACE FUNCTION owner(form JSON)
 RETURNS JSONB AS $$
@@ -28,42 +16,57 @@ RETURNS JSONB AS $$
   Declare _model_owner JSONB;
   Declare _form JSONB;
   Declare _jwt_role TEXT;
-  --Declare _jwt_type TEXT;
   Declare _validation JSONB;
   Declare _password TEXT;
 
   BEGIN
     -- claims check
     _jwt_role := current_setting('request.jwt.claim.role','t');
-    --_jwt_type := 'app';
     if _jwt_role is NULL then
-      _jwt_role := 'app_guest';
+      -- assume insert
+      -- runs during tests only
+      _jwt_role := 'guest_wgn';
+      if form::JSONB ? 'id' then
+        _jwt_role := 'editor_wdn';
+      end if;
+
     end if;
 
-    _form := form::JSONB;
-    -- evaluate the token
-    _model_owner := current_setting('app.lb_editor_wdn')::jsonb;
+    -- handle multiple tokens
+    BEGIN
+      _model_owner := current_setting(format('app.lb_%s',_jwt_role))::jsonb;
+    EXCEPTION
+      WHEN others then
+        -- PERFORM wdn_schema.process_logger(format('{"status":"500", "msg":"Unknown ", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB);
+        return format('{"status":"500", "msg":"Unknown ", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB;
+    END;
+    --_model_owner := current_setting('app.lb_editor_wdn')::jsonb;
 
+    -- in acceptable roles
+    /*
     if not(_model_owner ->> 'role' = _jwt_role) then
-        return format('{"status": "401", "msg":"Unauthorized bad token", "jwt_role":"%s"}', _jwt_role)::JSONB;
+      _model_owner := current_setting('app.lb_editor_wdn')::jsonb;
+      if not(_model_owner ->> 'role' = _jwt_role) then
+        return format('{"status": "401", "msg":"Unauthorized"}', _jwt_role)::JSONB;
+      end if;
+
     end if;
+    */
+    -- type stamp and convert to JSONB
+    _form := form::JSONB || '{"type":"owner"}'::JSONB;
     -- confirm all required attributes are in form
     -- validate attribute values
     _validation := owner_validate(_form);
     if _validation ->> 'status' != '200' then
+        -- PERFORM wdn_schema.process_logger(_validation);
         return _validation;
     end if;
-    _form := _form || '{"type":"owner"}'::JSONB;
-    --if _form ? 'password' then
-    --    _password := _form ->> 'password';
-    --    -- never store password in form
-    --    _form := _form - 'password';
-    --end if;
 
     if _form ? 'id' then
+      -- editor
         return '{"status": "400", "msg": "Update not YET supported"}'::JSONB;
     else
-
+      -- guest role
       BEGIN
               INSERT INTO register
                   (exmpl_type, exmpl_form)
@@ -71,11 +74,14 @@ RETURNS JSONB AS $$
                   ('owner', _form);
       EXCEPTION
           WHEN unique_violation THEN
-              return '{"status":"400", "msg":"Bad Request, duplicate owner"}'::JSONB;
+              -- PERFORM wdn_schema.process_logger(_form || '{"status":"400", "msg":"Bad Request, duplicate owner"}'::JSONB);
+              return '{"status":"400", "msg":"Bad App Request, duplicate owner"}'::JSONB;
           WHEN check_violation then
-              return '{"status":"400", "msg":"Bad Request, validation error"}'::JSONB;
+              ---- PERFORM process_logger();
+              return '{"status":"400", "msg":"Bad Owner Request, validation error"}'::JSONB;
           WHEN others then
-              return format('{"status":"500", "msg":"unknown insertion error", "SQLSTATE":"%s", "form":%s, "type":"%s"}',SQLSTATE, _form, _jwt_type)::JSONB;
+              ---- PERFORM process_logger();
+              return format('{"status":"500", "msg":"Unknown Owner insertion error", "SQLSTATE":"%s", "form":%s}',SQLSTATE, _form)::JSONB;
       END;
     end if;
 
@@ -83,6 +89,9 @@ RETURNS JSONB AS $$
     return rc;
   END;
 $$ LANGUAGE plpgsql;
+grant EXECUTE on FUNCTION owner(JSON) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- upsert
+
 -----------------
 -- FUNCTION: owner_VALIDATE
 -----------------
@@ -97,90 +106,39 @@ AS $$
     -- name, type, app_id, password
     -- confirm all required attributes are in form
     if not(form ? 'type' and form ? 'name' and form ? 'password') then
-       return '{"status":"400","msg":"Bad Request, owner_validate is missing one or more form attributes"}'::JSONB;
+       return '{"status":"400","msg":"Bad Request, owner is missing one or more form attributes"}'::JSONB;
     end if;
     -- validate attribute values
     if not(form ->> 'type' = 'owner') then
        return '{"status":"400", "msg":"Bad Request type value."}'::JSONB;
     end if;
-    -- proper application name
-    --if not( exists( select regexp_matches(form ->> 'app_id', '^[a-z][a-z_]+@[1-9]+\.[0-9]+\.[0-9]+') ) ) then
-    --   return '{"status":"400", "msg":"Bad Request, bad application id."}'::JSONB;
-    --end if;
+
     -- proper password
     if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
-       return '{"status":"400", "msg":"Bad Request, bad password."}'::JSONB;
+       return '{"status":"400", "msg":"Bad Request password value."}'::JSONB;
     end if;
     -- proper name ... name
     if not( exists( select regexp_matches(form ->> 'name', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-       return format('{"status":"400", "msg":"Bad Request, bad name.", "name":"%s"}', form ->> 'name')::JSONB;
-    end if;
-    -- proper name ... email
-    if not( exists( select regexp_matches(form ->> 'email', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-       return format('{"status":"400", "msg":"Bad Request, bad email.", "email":"%s"}', form ->> 'email')::JSONB;
+       return format('{"status":"400", "msg":"Bad Request name value."}')::JSONB;
     end if;
 
-    return '{"status": "200"}'::JSONB;
+    return '{"status": "200", "msg":"OK"}'::JSONB;
   END;
 $$ LANGUAGE plpgsql;
+
+grant EXECUTE on FUNCTION owner_validate(JSONB) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION owner_validate(JSONB) to editor_wdn; -- upsert
 
 
 -----------------
 -- FUNCTION: owner
 -----------------
 -- select an owner
--- Role:
--- Permissions: EXECUTE
--- Returns: JSONB
+
 
 CREATE OR REPLACE FUNCTION owner(id TEXT) RETURNS JSONB
 AS $$
   Select exmpl_form from register where exmpl_id=id and exmpl_type='owner';
 $$ LANGUAGE sql;
----------------------
--- GRANT: APP_GUEST
----------------------
---grant usage on schema app_schema to app_guest;
 
-grant insert on register to app_guest;
-grant EXECUTE on FUNCTION owner(JSON) to app_guest; -- upsert
-
----------------------
--- GRANT: owner_GUEST
----------------------
-grant usage on schema app_schema to editor_wdn;
-
-grant insert on register to editor_wdn; -- C ... 'app' only
-grant select on register to editor_wdn; -- R ... 'owner', 'app'
-grant update on register to editor_wdn; -- U ... 'owner'
--- grant delete on register to editor_wdn; -- D ... 'owner'
-
-grant TRIGGER on register to editor_wdn; --
-
-grant EXECUTE on FUNCTION register_upsert_trigger_func to editor_wdn;
-
-grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- upsert
-grant EXECUTE on FUNCTION owner(TEXT) to editor_wdn; -- select
--- grant EXECUTE on FUNCTION owner(????) to editor_wdn; -- delete
-
-grant EXECUTE on FUNCTION owner_validate(JSONB) to editor_wdn;
-
-grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to editor_wdn;
-
---grant app_guest to authenticator;
-
-
-/*
-
-# Create owner
-curl http://localhost:3100/rpc/owner -X POST \
-     -H "Authorization: Bearer $APPTOKEN"   \
-     -H "Content-Type: application/json" \
-     -H "Prefer: params=single-object"\
-     -d '{"type": "owner", "name":"smithr@smith.com", "app_name":"my_app@1.0.0", "password":"a1A!aaaa"}'
-type
-name
-app_name
-password
-
-*/
+grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- select

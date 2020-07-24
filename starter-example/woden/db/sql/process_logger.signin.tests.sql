@@ -2,16 +2,16 @@
 ------------------------
 -- TESTs
 ------------------------
-\c woden_db;
+\c wdn_db;
 
-SET search_path TO app_schema, public;
+SET search_path TO wdn_schema, public;
 
 BEGIN;
 
   SELECT plan(3);
   -- Insert
   SELECT is (
-    app_schema.process_logger('{
+    wdn_schema.process_logger('{
       "type":"test",
       "name":"some stuff",
       "desc":"more stuff"
@@ -24,7 +24,7 @@ BEGIN;
   -- Update
   /*
   SELECT is (
-    app_schema.owner('{"type": "owner",
+    wdn_schema.owner('{"type": "owner",
       "app_id": "my_app@1.0.0",
       "name": "me@someplace.com",
       "password": "a2A!aaaa"}'::JSON
@@ -35,9 +35,9 @@ BEGIN;
 */
   -- select
   --SELECT matches(
-  --  app_schema.owner('my_app@1.0.0'::TEXT)::TEXT,
+  --  wdn_schema.owner('my_app@1.0.0'::TEXT)::TEXT,
   --  '[a-zA-Z\.0-9_]+',
-  --  'app - select from register by id and check token'::TEXT
+  --  'app - select from r egister by id and check token'::TEXT
   --);
 
   -- update: no update

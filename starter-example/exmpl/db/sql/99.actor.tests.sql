@@ -20,7 +20,7 @@ BEGIN;
     '{"msg": "OK", "status": "200"}'::JSONB,
     'actor - insert test'::TEXT
   );
-    
+
   -- Update
   /*
   SELECT is (
@@ -37,7 +37,7 @@ BEGIN;
   --SELECT matches(
   --  api_schema.actor('my_app@1.0.0'::TEXT)::TEXT,
   --  '[a-zA-Z\.0-9_]+',
-  --  'app - select from register by id and check token'::TEXT
+  --  'app - select from regis ter by id and check token'::TEXT
   --);
 
   -- update: no update

@@ -189,8 +189,8 @@ CREATE ROLE authenticator noinherit login password :lb_guest_password ;
 CREATE ROLE api_guest nologin; -- permissions to execute app() and insert type=app into register
 -- each app gets its own _guest role  i.e., example_guest which is <group>_guest {"type":"user", "":""}
 -- each app gets its own _user role   i.e., example_user which is <group>_user
---CREATE ROLE example_user nologin; -- permissions to execute user() and insert type=user into register
---CREATE ROLE app_guest nologin;
+--CREATE ROLE example_user nologin; -- permissions to execute user() and insert type=user into regi ster
+--CREATE ROLE guest_wgn nologin;
 ---------------
 -- SCHEMA: api_schema
 ---------------
@@ -258,7 +258,7 @@ BEGIN
         _payload_claims := format('{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s", "type":"%s"}'::TEXT,
                                   'LyttleBit',
                                   'application',
-                                  'app_guest',
+                                  'guest_wgn',
                                   NEW.exmpl_form ->> 'app-name',
                                   'actor'
                                   )::JSON;

@@ -23,27 +23,47 @@ A starter for an API backed by a single table.
 * Wodens do not expire
 * Wodens can be replaced
 
-# Architecture 
+
+# Setup
+Environment (.env)
+```
+#########################
+######## DOCKER RUNTIME
+##########################
+POSTGRES_DB=wdn_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=mysecretdatabasepassword
+POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
+LB_GUEST_PASSWORD=mysecretclientpassword
+PGRST_DB_SCHEMA=wdn_schema
+PGRST_DB_ANON_ROLE=wdn_guest
+
+WODENADMIN=[{"name":"admin@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}]
+
+```
+
+
+# Architecture
 
 ## Woden
 Administrate portfolio of applications
 Originator of application tokens
-Recomend One per organization 
+Recomend One per organization
 Init
 * Manually make a woden, https://jwt.io  
 * configure woden in your environment
 
 Storage
-    * register 
+    * register
 Functions           
     * app()             
-    * actor-owner() 
+    * actor-owner()
     * woden()
 
 ## Application-Configuration
 Custom configuration for an application.
-One per application 
-Init 
+One per application
+Init
 * get app-token from Woden
 * configure in enviroment
 
@@ -151,21 +171,21 @@ Function
 * Keep a list of applications
 * Keep a list of application owners
 * Provide an app-token for a specific application
-* 
+*
  ```
-DATABASE:   woden_db
-SCHEMA:     app_schema
-TABLE:      Register 
+DATABASE:   wdn_db
+SCHEMA:     wdn_schema
+TABLE:      Register
 COLUMNS:    id, type, form, active, created, updated
 INDEX:      id
-ROLE:       app_guest
+ROLE:       guest_wgn
 ROLE:       owner_editor
 
 API: Owner, CRUD
     owner: {id, type, |email|, name, [password]}
-    
-               function           token           VERB     return   app_guest
-               --------           -----           ----     ------   --------- 
+
+               function           token           VERB     return   guest_wgn
+               --------           -----           ----     ------   ---------
     * insert , owner(owner::JSON),<woden-token> , POST   , <status> E
     * select , owner(TEXT)      , <app-token>   , GET    , <owner>  N
     * select , owner(TEXT, JSON), <app-token>   , GET    , <owner>  N
@@ -173,7 +193,7 @@ API: Owner, CRUD
     * delete , owner(????,????) , <owner-token> , DELETE , <status> N
 
 Permissions CRUDE: Create Read Update Delete Execute
-                    app_guest   owner_editor
+                    guest_wgn   owner_editor
 register                C           RUD
 C owner(JSON)           E
 R owner(TEXT)                       E
@@ -185,37 +205,37 @@ U app(TEXT, JSON)                   E
 D app(????,????)                    E
 Rules:
     * Anyone can add an owner
-    * Ownership is designated by the id in the owner record 
+    * Ownership is designated by the id in the owner record
     * User can only modifiy (UD) their own data, row specific
     * User can see all applications in the portfolio
     * Application is owned by the person who enters it
-    * 
+    *
 
-    <status> is {"status":"", "msg":""} 
+    <status> is {"status":"", "msg":""}
     <owner> is {"status":"200", "token":"<app-token>"}
     <woden-token> is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "wdn_guest", "type": "owner"}
     <app-token>   is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "????_guest", "type": "owner"}
 
 API: Signin, C
     signin:  {"type":"signin", "name":"<email>", "password":"<TEXT>"}
-    
-    * insert , signin(signin::JSON), <woden-token> , POST   , <owner> 
-    
+
+    * insert , signin(signin::JSON), <woden-token> , POST   , <owner>
+
     Dependencis
-    owner: 
-    <owner-token> is 
+    owner:
+    <owner-token> is
 
 
 API: App, form: {id, type, |name|, owner_id, token}
                function           token           VERB     return
-               --------           -----           ----     ------ 
-    * insert , app(JSON)        , <owner-token> , POST   , <status> 
-    * select , app(TEXT)        , <owner-token> , GET    , <status> 
-    * select , app(TEXT, JSON)  , <????-token>  , GET    , <status> 
-    * update , app(JSON)        , <????-token>  , POST   , <status> 
-    * delete , app(????,????)   , <????-token>  , DELETE , <status> 
-            
-                
+               --------           -----           ----     ------
+    * insert , app(JSON)        , <owner-token> , POST   , <status>
+    * select , app(TEXT)        , <owner-token> , GET    , <status>
+    * select , app(TEXT, JSON)  , <????-token>  , GET    , <status>
+    * update , app(JSON)        , <????-token>  , POST   , <status>
+    * delete , app(????,????)   , <????-token>  , DELETE , <status>
+
+
 * [ ] is encrypted value
 * | | is id value or part of a compound id value
 * ( ) is parameter list
@@ -223,12 +243,12 @@ API: App, form: {id, type, |name|, owner_id, token}
 * < > is value/variable
 * id attribute triggers an update
 * ???? is a marker for undefined
-* table has index on id 
+* table has index on id
 
-       
-        
+
+
   roles
-    app_guest
+    guest_wgn
     owner_editor
  ```      
   tokens
@@ -239,7 +259,7 @@ API: App, form: {id, type, |name|, owner_id, token}
           _iss: LyttleBit_
           _sub: _
           _name: <application-name>_
-          _roles:[app_guest]_
+          _roles:[guest_wgn]_
           _type: actor_
         _actor-token: claims: (iss, sub, name, role, type)_
           _iss:_
@@ -248,9 +268,9 @@ API: App, form: {id, type, |name|, owner_id, token}
           _roles: []_
           _type:_
 
-                    app_guest,  owner_editor
+                    guest_wgn,  owner_editor
         register    C           
-        
+
         app(JSON)               
         app(JSON)   
 
@@ -280,7 +300,7 @@ apis
     actor(TEXT)
 roles
     api_guest
-    app_guest
+    guest_wgn
     actor_editor
 tokens
       woden: claims: (iss, sub, name, role, type)
@@ -290,7 +310,7 @@ tokens
         _iss: LyttleBit_
         _sub: _
         _name: <application-name>_
-        _roles:[app_guest]_
+        _roles:[guest_wgn]_
         _type: actor_
       _actor-token: claims: (iss, sub, name, role, type)_
         _iss:_

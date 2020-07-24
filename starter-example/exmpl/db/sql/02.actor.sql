@@ -5,12 +5,12 @@ CREATE SCHEMA if not exists api_schema;
 ----------------
 -- system variables
 ----------------
-ALTER DATABASE application_db SET "app.lb_actor_editor" To '{"role":"app_guest"}';
+ALTER DATABASE application_db SET "app.lb_actor_editor" To '{"role":"guest_wgn"}';
 
 ---------------
 -- SCHEMA: api_schema
 ---------------
-CREATE ROLE app_guest nologin;
+CREATE ROLE guest_wgn nologin;
 CREATE ROLE actor_editor nologin; -- permissions to execute app() and insert type=app into register
 
 SET search_path TO api_schema, public;
@@ -37,7 +37,7 @@ RETURNS JSONB AS $$
     _jwt_role := current_setting('request.jwt.claim.role','t');
     _jwt_type := current_setting('request.jwt.claim.type','t');
     if _jwt_role is NULL or _jwt_type is NULL then
-      _jwt_role := 'app_guest';
+      _jwt_role := 'guest_wgn';
       _jwt_type := 'actor';
     end if;
 
@@ -135,12 +135,12 @@ AS $$
   Select exmpl_form from register where exmpl_id=id;
 $$ LANGUAGE sql;
 ---------------------
--- GRANT: APP_GUEST
+-- GRANT: guest_wgn
 ---------------------
-grant usage on schema api_schema to app_guest;
+grant usage on schema api_schema to guest_wgn;
 
-grant insert on register to app_guest;
-grant EXECUTE on FUNCTION actor(JSON) to app_guest; -- upsert
+grant insert on register to guest_wgn;
+grant EXECUTE on FUNCTION actor(JSON) to guest_wgn; -- upsert
 
 ---------------------
 -- GRANT: ACTOR_GUEST
@@ -160,7 +160,7 @@ grant EXECUTE on FUNCTION actor_validate(JSONB) to actor_editor;
 
 grant EXECUTE on FUNCTION is_valid_token(TEXT,TEXT) to actor_editor;
 
-grant app_guest to authenticator;
+grant guest_wgn to authenticator;
 
 
 /*
