@@ -40,21 +40,7 @@ curl http://localhost:3100/rpc/owner -X POST \
      -H "Prefer: params=single-object"\
      -d '{"name":"me@someplace.com", "password":"a1A!aaaa"}'
 echo "---"
-################
-# BAD Signin and get owner-token
-################
-echo "--- Bad Signin user"
-export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
-        -H "Authorization: Bearer $WODEN_TOKEN" \
-        -H "Content-Type: application/json" \
-        -H "Prefer: params=single-object" \
-        -d '{"name":"bad@someplace.com", "password":"a1A!aaaa"}')
-echo "--- Bad Signin password"
-export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
-        -H "Authorization: Bearer $WODEN_TOKEN" \
-        -H "Content-Type: application/json" \
-        -H "Prefer: params=single-object" \
-        -d '{"name":"me@someplace.com", "password":"xxxxa1A!aaaa"}')
+
 ################
 # Signin and get owner-token
 ################

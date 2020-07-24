@@ -8,7 +8,7 @@ SET search_path TO wdn_schema, public;
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION signin_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema.signin_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -35,10 +35,10 @@ AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION signin_validate(JSONB) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.signin_validate(JSONB) to guest_wgn; -- upsert
 
 
-CREATE OR REPLACE FUNCTION signin(form JSON) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
   -- make token to execute app(JSON)
   declare rc JSONB;
   declare signin_token TEXT;
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION signin(form JSON) RETURNS JSON AS $$
     _form := _form - 'password';
     -- validate name and password
 
-    if not(exists(select exmpl_form from register where exmpl_id = _form ->> 'name' and exmpl_form ->> 'password' = crypt(_pw, exmpl_form ->> 'password'))) then
+    if not(exists(select exmpl_form from wdn_schema.register where exmpl_id = _form ->> 'name' and exmpl_form ->> 'password' = crypt(_pw, exmpl_form ->> 'password'))) then
       -- login failure
       _form := _form || '{"status":"404", "msg":"Not Found"}'::JSONB;
       PERFORM wdn_schema.process_logger(_form);
@@ -122,4 +122,4 @@ CREATE OR REPLACE FUNCTION signin(form JSON) RETURNS JSON AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION signin(JSON) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.signin(JSON) to guest_wgn; -- upsert

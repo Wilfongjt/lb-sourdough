@@ -19,7 +19,7 @@ SET search_path TO wdn_schema, public;
 -- Create or Update an owner
 
 
-CREATE OR REPLACE FUNCTION process_logger(_form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema.process_logger(_form JSONB)
 RETURNS JSONB AS $$
   Declare rc jsonb;
   Declare _model_owner JSONB;
@@ -43,7 +43,7 @@ RETURNS JSONB AS $$
       -- obfuscate the password before logging
       --_form := form::JSONB || '{"password":"sssssssssss"}'::JSONB;
       BEGIN
-              INSERT INTO register
+              INSERT INTO wdn_schema.register
                   (exmpl_type, exmpl_form)
               VALUES
                   ('process', _form);
@@ -66,7 +66,7 @@ $$ LANGUAGE plpgsql;
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION process_logger_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema.process_logger_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -105,14 +105,14 @@ $$ LANGUAGE plpgsql;
 ---------------------
 grant usage on schema wdn_schema to process_logger_role;
 
-grant insert on register to process_logger_role; -- C ... 'app' only
-grant select on register to process_logger_role; -- R ... 'owner', 'app'
+grant insert on wdn_schema.register to process_logger_role; -- C ... 'app' only
+grant select on wdn_schema.register to process_logger_role; -- R ... 'owner', 'app'
 
 -- TRIGGER
 -- process_logger_role should inhert regi ster trigger privileges
 
-grant EXECUTE on FUNCTION register_upsert_trigger_func to process_logger_role;
+grant EXECUTE on FUNCTION wdn_schema.register_upsert_trigger_func to process_logger_role;
 
-grant EXECUTE on FUNCTION process_logger(JSONB) to process_logger_role; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.process_logger(JSONB) to process_logger_role; -- upsert
 
-grant EXECUTE on FUNCTION process_logger_validate(JSONB) to process_logger_role;
+grant EXECUTE on FUNCTION wdn_schema.process_logger_validate(JSONB) to process_logger_role;

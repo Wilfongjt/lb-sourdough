@@ -10,7 +10,7 @@ SET search_path TO wdn_schema, public;
 -- FUNCTION: owner
 -----------------
 
-CREATE OR REPLACE FUNCTION owner(form JSON)
+CREATE OR REPLACE FUNCTION wdn_schema.owner(form JSON)
 RETURNS JSONB AS $$
   Declare rc jsonb;
   Declare _model_owner JSONB;
@@ -68,7 +68,7 @@ RETURNS JSONB AS $$
     else
       -- guest role
       BEGIN
-              INSERT INTO register
+              INSERT INTO wdn_schema.register
                   (exmpl_type, exmpl_form)
               VALUES
                   ('owner', _form);
@@ -89,15 +89,15 @@ RETURNS JSONB AS $$
     return rc;
   END;
 $$ LANGUAGE plpgsql;
-grant EXECUTE on FUNCTION owner(JSON) to guest_wgn; -- upsert
-grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to editor_wdn; -- upsert
 
 -----------------
 -- FUNCTION: owner_VALIDATE
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION owner_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema.owner_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -126,8 +126,8 @@ AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION owner_validate(JSONB) to guest_wgn; -- upsert
-grant EXECUTE on FUNCTION owner_validate(JSONB) to editor_wdn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.owner_validate(JSONB) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema.owner_validate(JSONB) to editor_wdn; -- upsert
 
 
 -----------------
@@ -136,9 +136,9 @@ grant EXECUTE on FUNCTION owner_validate(JSONB) to editor_wdn; -- upsert
 -- select an owner
 
 
-CREATE OR REPLACE FUNCTION owner(id TEXT) RETURNS JSONB
+CREATE OR REPLACE FUNCTION wdn_schema.owner(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from register where exmpl_id=id and exmpl_type='owner';
+  Select exmpl_form from wdn_schema.register where exmpl_id=id and exmpl_type='owner';
 $$ LANGUAGE sql;
 
-grant EXECUTE on FUNCTION owner(JSON) to editor_wdn; -- select
+grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to editor_wdn; -- select
