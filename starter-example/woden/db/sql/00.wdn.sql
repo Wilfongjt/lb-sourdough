@@ -51,7 +51,7 @@ user(user_form JSON)
     resolution: (check that sign() is using the correct JWT_SECRET value)
     resolution: (replace the WODEN envirnement variable called by curl)
     resolution: POSTGRES_SCHEMA and PGRST_DB_SCHEMA should be the same
-    resolution: remove image, docker rmi exmpl_db
+    resolution: remove image, docker rmi reg_db
     resolution: put quotes around the export WORDEN=""
     try: ?payoad in trigger has to match payload in woden function?
     try: set env variables out side of  client
@@ -84,7 +84,7 @@ user(user_form JSON)
       try: removing the docker images...docker rmi wdn_db
 
 * issue:
-      schema \"exmpl_schema\" does not exist
+      schema \"reg_schema\" does not exist
       try: docker rmi wdn_db ... didnt work
       try: reboot... didnt work
       try: check docker-compose.yml, change POSTGRES_SCHEMA to match
@@ -126,7 +126,7 @@ CREATE DATABASE wdn_db;
 
 \c wdn_db
 
-CREATE SCHEMA if not exists wdn_schema;
+CREATE SCHEMA if not exists wdn_schema_1_0_0;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;;
 CREATE EXTENSION IF NOT EXISTS pgtap;;
@@ -148,7 +148,7 @@ ALTER DATABASE wdn_db SET "app.settings.jwt_secret" TO :postgres_jwt_secret;
 --------------
 -- GUEST
 --------------
-ALTER DATABASE wdn_db SET "app.lb_woden" To :lb_woden;
+-- ALTER DATABASE wdn_db SET "app.lb_woden" To :lb_woden;
 
 ALTER DATABASE wdn_db SET "app.lb_guest_wgn" To '{"role":"guest_wgn"}';
 
@@ -169,65 +169,65 @@ ALTER DATABASE wdn_db SET "app.lb_editor_wdn" To '{"role":"editor_wdn"}';
 
 CREATE ROLE authenticator noinherit login password :lb_guest_password ;
 
-CREATE ROLE guest_wgn nologin noinherit; -- permissions to execute app() and insert type=owner into wdn_schema.register
-CREATE ROLE editor_wdn nologin noinherit; -- permissions to execute app() and insert type=app into wdn_schema.register
+CREATE ROLE guest_wgn nologin noinherit; -- permissions to execute app() and insert type=owner into wdn_schema_1_0_0.register
+CREATE ROLE editor_wdn nologin noinherit; -- permissions to execute app() and insert type=app into wdn_schema_1_0_0.register
 CREATE ROLE process_logger_role nologin;
 
 ---------------
 -- SCHEMA Permissions
 ---------------
-grant usage on schema wdn_schema to guest_wgn;
-grant usage on schema wdn_schema to editor_wdn;
-grant usage on schema wdn_schema to process_logger_role;
+grant usage on schema wdn_schema_1_0_0 to guest_wgn;
+grant usage on schema wdn_schema_1_0_0 to editor_wdn;
+grant usage on schema wdn_schema_1_0_0 to process_logger_role;
 ---------------
 -- SCHEMA: set
 ---------------
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 ----------------
 -- TYPE: JWT_TOKEN
 ----------------
-CREATE TYPE wdn_schema.woden_token AS (
+CREATE TYPE wdn_schema_1_0_0.woden_token AS (
   woden text
 );
-CREATE TYPE wdn_schema.jwt_token AS (
+CREATE TYPE wdn_schema_1_0_0.jwt_token AS (
   token text
 );
 
 --------------
--- TABLE: wdn_schema.register
+-- TABLE: wdn_schema_1_0_0.register
 --------------
 
 create table if not exists
-    wdn_schema.register (
-        exmpl_id TEXT PRIMARY KEY DEFAULT uuid_generate_v4 (),
-        exmpl_type varchar(256) not null check (length(exmpl_type) < 256),
-        exmpl_form jsonb not null,
-        exmpl_active BOOLEAN NOT NULL DEFAULT true,
-        exmpl_created timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-        exmpl_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    wdn_schema_1_0_0.register (
+        reg_id TEXT PRIMARY KEY DEFAULT uuid_generate_v4 (),
+        reg_type varchar(256) not null check (length(reg_type) < 256),
+        reg_form jsonb not null,
+        reg_active BOOLEAN NOT NULL DEFAULT true,
+        reg_created timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+        reg_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP
     );
 ----------------
 -- INDEX
 -- * index automatically go in the parent table's schema
 ----------------
-CREATE UNIQUE INDEX IF NOT EXISTS register_exmpl_id_pkey ON wdn_schema.register(exmpl_id);
+CREATE UNIQUE INDEX IF NOT EXISTS register_reg_id_pkey ON wdn_schema_1_0_0.register(reg_id);
 
-grant insert on wdn_schema.register to guest_wgn; -- C
-grant select on wdn_schema.register to guest_wgn; -- R, signin
+grant insert on wdn_schema_1_0_0.register to guest_wgn; -- C
+grant select on wdn_schema_1_0_0.register to guest_wgn; -- R, signin
 
-grant insert on wdn_schema.register to editor_wdn; -- C
-grant update on wdn_schema.register to editor_wdn; -- U
-grant select on wdn_schema.register to editor_wdn; -- R
+grant insert on wdn_schema_1_0_0.register to editor_wdn; -- C
+grant update on wdn_schema_1_0_0.register to editor_wdn; -- U
+grant select on wdn_schema_1_0_0.register to editor_wdn; -- R
 
-grant insert on wdn_schema.register to process_logger_role; -- C
+grant insert on wdn_schema_1_0_0.register to process_logger_role; -- C
 
 ----------------
 -- FUNCTION: regi ster_upsert_trigger_func
 ----------------
 
-CREATE OR REPLACE FUNCTION wdn_schema.register_upsert_trigger_func() RETURNS trigger
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.register_upsert_trigger_func() RETURNS trigger
 AS $$
 Declare _token TEXT;
 Declare _payload_claims JSON;
@@ -240,68 +240,68 @@ BEGIN
    -- application specific login
 
     IF (TG_OP = 'INSERT') THEN
-      IF (NEW.exmpl_form ->> 'type' = 'owner') then
-        NEW.exmpl_id := NEW.exmpl_form ->> 'name';
-        --_form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.exmpl_form ->> 'email', crypt(NEW.exmpl_password, gen_salt('bf')) )::JSONB;
-        --_pw := crypt(NEW.exmpl_form ->> 'password', gen_salt('bf'));
-        _form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.exmpl_form ->> 'name', crypt(NEW.exmpl_form ->> 'password', gen_salt('bf')) )::JSONB;
+      IF (NEW.reg_form ->> 'type' = 'owner' or NEW.reg_form ->> 'type' = 'woden') then
+        NEW.reg_id := NEW.reg_form ->> 'name';
+        --_form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.reg_form ->> 'email', crypt(NEW.reg_password, gen_salt('bf')) )::JSONB;
+        --_pw := crypt(NEW.reg_form ->> 'password', gen_salt('bf'));
+        _form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.reg_form ->> 'name', crypt(NEW.reg_form ->> 'password', gen_salt('bf')) )::JSONB;
 
-        NEW.exmpl_form := NEW.exmpl_form  || _form;
+        NEW.reg_form := NEW.reg_form  || _form;
         -- encrypt password
-        --NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
-      ELSEIF (NEW.exmpl_form ->> 'type' = 'app') then
+        --NEW.reg_password := crypt(NEW.reg_password, gen_salt('bf'));
+      ELSEIF (NEW.reg_form ->> 'type' = 'app') then
         -- create guest token for use by new app, similar to woden
 
         _payload_claims := format('{"iss":"%s", "sub":"%s", "role":"%s", "name":"%s", "type":"%s"}'::TEXT,
                                   'LyttleBit',
                                   'application',
                                   'guest_wgn',
-                                  NEW.exmpl_form ->> 'app-name',
+                                  NEW.reg_form ->> 'app-name',
                                   'owner'
                                   )::JSON;
 
         _token := sign( _payload_claims, current_setting('app.settings.jwt_secret')::TEXT,  'HS256'::TEXT);
         _form := format('{"token": "%s"}',_token)::JSONB;
         -- overide id, id should be <name>@<verson> after templating
-        --  NEW.exmpl_id := NEW.exmpl_form ->> 'id';
-        NEW.exmpl_id := NEW.exmpl_form ->> 'name';
+        --  NEW.reg_id := NEW.reg_form ->> 'id';
+        NEW.reg_id := NEW.reg_form ->> 'name';
         -- add token to form
-        NEW.exmpl_form := NEW.exmpl_form || _form;
+        NEW.reg_form := NEW.reg_form || _form;
         -- encrypt password
-        --NEW.exmpl_password := crypt(NEW.exmpl_password, gen_salt('bf'));
-      --ELSEIF (NEW.exmpl_form ->> 'type' = 'owner') then
+        --NEW.reg_password := crypt(NEW.reg_password, gen_salt('bf'));
+      --ELSEIF (NEW.reg_form ->> 'type' = 'owner') then
 
       END IF;
 
     ELSEIF (TG_OP = 'UPDATE') THEN
 
-       NEW.exmpl_updated := CURRENT_TIMESTAMP;
+       NEW.reg_updated := CURRENT_TIMESTAMP;
 
     END IF;
 
     RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.register_upsert_trigger_func to guest_wgn;
-grant EXECUTE on FUNCTION wdn_schema.register_upsert_trigger_func to editor_wdn;
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.register_upsert_trigger_func to guest_wgn;
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.register_upsert_trigger_func to editor_wdn;
 
 ----------------
--- TRIGGER: EXMPL_INS_UPD_TRIGGER
+-- TRIGGER: reg_INS_UPD_TRIGGER
 -- * the trigger inherits the schema of its table
 ----------------
 
 CREATE TRIGGER register_ins_upd_trigger
- BEFORE INSERT ON wdn_schema.register
+ BEFORE INSERT ON wdn_schema_1_0_0.register
  FOR EACH ROW
- EXECUTE PROCEDURE wdn_schema.register_upsert_trigger_func();
+ EXECUTE PROCEDURE wdn_schema_1_0_0.register_upsert_trigger_func();
 
-grant TRIGGER on wdn_schema.register to guest_wgn;
-grant TRIGGER on wdn_schema.register to editor_wdn;
+grant TRIGGER on wdn_schema_1_0_0.register to guest_wgn;
+grant TRIGGER on wdn_schema_1_0_0.register to editor_wdn;
  -----------------
  -- FUNCTION: http_response
  -----------------
 
- Create Or Replace FUNCTION wdn_schema.http_response(_status text, _msg text) RETURNS JSON AS $$
+ Create Or Replace FUNCTION wdn_schema_1_0_0.http_response(_status text, _msg text) RETURNS JSON AS $$
    SELECT
      row_to_json(r)
    FROM (
@@ -311,14 +311,14 @@ grant TRIGGER on wdn_schema.register to editor_wdn;
    ) r;
  $$ LANGUAGE sql;
 
-grant EXECUTE on FUNCTION wdn_schema.http_response(TEXT, TEXT) to guest_wgn; -- C
-grant EXECUTE on FUNCTION wdn_schema.http_response(TEXT, TEXT) to editor_wdn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.http_response(TEXT, TEXT) to guest_wgn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.http_response(TEXT, TEXT) to editor_wdn; -- C
 
 ------------
 -- FUNCTION: IS_VALID_TOKEN
 -----------------
 
-CREATE OR REPLACE FUNCTION wdn_schema.is_valid_token(_token TEXT, expected_role TEXT) RETURNS Boolean
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.is_valid_token(_token TEXT, expected_role TEXT) RETURNS Boolean
 AS $$
 
   DECLARE good Boolean;
@@ -340,5 +340,10 @@ BEGIN
   RETURN good;
 END;  $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.is_valid_token(TEXT, TEXT) to guest_wgn; -- C
-grant EXECUTE on FUNCTION wdn_schema.is_valid_token(TEXT, TEXT) to editor_wdn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.is_valid_token(TEXT, TEXT) to guest_wgn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.is_valid_token(TEXT, TEXT) to editor_wdn; -- C
+
+----------------
+-- setup woden as user
+----------------
+insert into wdn_schema_1_0_0.register (reg_type, reg_form) values ('woden', (:lb_woden::JSONB || '{"type":"woden", "roles":"admin"}'::JSONB) );

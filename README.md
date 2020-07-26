@@ -1,5 +1,5 @@
 # lb-sourdough
-A starter for an API backed by a single table.
+A starter for an API backed by a single table. 
 
 # Expectations
 * The system is enabled by a JWT token called a woden
@@ -23,6 +23,25 @@ A starter for an API backed by a single table.
 * Wodens do not expire
 * Wodens can be replaced
 
+## Strategy
+* Use schemata for versioning the API
+* Configure schema API versions using db/woden_N_N_N.sql file name pattern ( a new file for each version)
+* Leave older versions in the db/ folder. This will leave all versions in the database 
+* docker-compose can only run one schema. Designate current schema in the .env file
+
+# Woden API 1.0.0 (wdn_1_0_0)
+Located in woden_1_0_0.sql 
+```
+owner(owner_form JSON)
+owner(id TEXT, owner_form JSON)
+owner(id TEXT)
+
+signin(signin_form JSON)
+
+app(app_form JSON)
+app(id TEXT, app_form JSON)
+app(id TEXT)
+```
 
 # Setup
 Environment (.env)
@@ -35,7 +54,7 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=mysecretdatabasepassword
 POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
 LB_GUEST_PASSWORD=mysecretclientpassword
-PGRST_DB_SCHEMA=wdn_schema
+PGRST_DB_SCHEMA=wdn_schema_1_0_0
 PGRST_DB_ANON_ROLE=wdn_guest
 
 WODENADMIN=[{"name":"admin@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}]
@@ -43,135 +62,66 @@ WODENADMIN=[{"name":"admin@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}
 ```
 
 
-# Architecture
 
-## Woden
-Administrate portfolio of applications
-Originator of application tokens
-Recomend One per organization
-Init
-* Manually make a woden, https://jwt.io  
-* configure woden in your environment
 
-Storage
-    * register
-Functions           
-    * app()             
-    * actor-owner()
-    * woden()
-
-## Application-Configuration
-Custom configuration for an application.
-One per application
-Init
-* get app-token from Woden
-* configure in enviroment
-
-Storage
-    * application
-Functions
-    * actor-admin()
-    * token-app()
-
-## Application
-Storage
-    * application
-Function    
-    * actor-user()
-    * token()
-*
 
 # Overview
-## Get Server Running (up.sh)
-   * Environment (.env)
-   * Fireup docker-compose
-   * Check server connection: Curl a woden
-## Get Client Talking to Server (woden.sh)
-   * Manually configure woden in client environment
-## Register an Application with the database (newapp.sh)
-   * Create an Application record
-   * Check proper application creation: Curl an app-token  
-## Get Application Talking to the RegisterAPI ()
-   * Manually configure app-token in client environment
-## Register an Application Actor/User record ()
-   * _Create a actor_
-   * _Check proper actor creation: Curl an actor_
-## _Signin to Application_
-   _1. Update login counter_
-   _2. Update updated to current date_
 
 
-## Get Started
-  1. Environment (.env)
-  * place .env in folder with docker-compose.yml
-  ```
-      POSTGRES_DB=application_db
-      POSTGRES_USER=postgres
-      POSTGRES_PASSWORD=mysecretdatabasepassword
-      POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONG
-      LB_GUEST_PASSWORD=mysecretclientpassword
-      PGRST_DB_SCHEMA=api_schema
-      PGRST_DB_ANON_ROLE=api_guest
-  ```
 
-  2. Fireup docker-compose:
-  ```
-      # cd to folder with docker-compose.yml
-      docker-compose up
-  ```
-  3. Curl a woden
-  ```
-  curl http://localhost:3100/rpc/woden -X POST \
-       -H "Content-Type: application/json"
-  ```
-  4. Set WODEN environment variable:
-  ```
-      # this woden will work but may break in the future
-      # run docker-compose up to get fresh woden  
-      export WODEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiYXBpX2d1ZXN0IiwidHlwZSI6ImFwcCJ9.tocptwoT-rnls4PmWhj82AMeEhyC4fs7ZfhbCLhNB0M"
+## Curl Client
 
-  ```
-  5. Register an application
-  ```
-      curl http://localhost:3100/rpc/app -X POST \
-           -H "Authorization: Bearer $WODEN"   \
-           -H "Content-Type: application/json" \
-           -H "Prefer: params=single-object"\
-           -d '{"type": "app", "name": "my-application@1.0.0", "group":"register", "owner": "me@someplace.com", "password": "a1A!aaaa"}'
-  ```
-  6. Get application-token: app('{"id":""}')
-  ```
-      curl http://localhost:3100/rpc/app -X POST \
-           -H "Authorization: Bearer $WODEN"   \
-           -H "Content-Type: application/json" \
-           -d '{"id": "my_app@1.0.0"}'
-  ```
-  7. Set APPTOKEN environment variable:
-  ```
-      export APPTOKEN=<application-token>
-  ```
-  8. Register APP application actor (repeat as needed)
-  ```
-      curl http://localhost:3100/rpc/actor -X POST \
-           -H "Authorization: Bearer $APPTOKEN"   \
-           -H "Content-Type: application/json" \
-           -H "Prefer: params=single-object"\
-           -d '{"type": "actor", "name": "request@1.0.0", "username": "me@someplace.com", "password": "a1A!aaaa"}'
+*
+# Woden
+The Germanic chief god, distributor of talents, wisdom and war. In this case, Woden distributes access and permissions via JSON Web Tokens. 
 
-  ```
-  9. Application Signin Or get actor-token:
-  ```
-      curl http://localhost:3100/rpc/actor -X POST \
-           -H "Authorization: Bearer $APPTOKEN"   \
-           -H "Content-Type: application/json" \
-           -d '{"username":"", "password":""}'
-  ```
+## Frontend Prerequisites
+* Woden-token
+
+### Woden Token
+The woden token authorizes access to the signin function of the Woden API.  
+Put the Woden Token in the client environment. 
+* Manually create a JSON Web Token for Woden at https://jwt.io
+    * payload: {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "guest_wdn"}
+    * password should be 32 characters long and is the same value as POSTGRES_JWT_SECRET
+
+
+## Backend Prerequisites 
+* Name the Woden 
+* Environment File (.env)
+* Docker-compose 
+
+### Name the Woden
+Give Woden a user name and password. The woden can add applications and therefor create an application specific JWT.  
+Put Woden in the .env.
+```
+LB_WODEN=LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
+```
+
+### Backend Environment File (.env)
+* Put the .env file in the folder with the docker-compose.yml 
+```
+# database 
+POSTGRES_DB=wdn_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=mysecretdatabasepassword
+POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
+# api
+PGRST_DB_SCHEMA=wdn_v_1_0_0
+PGRST_DB_ANON_ROLE=wdn_guest
+#client
+LB_GUEST_PASSWORD=mysecretclientpassword
+LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
+
+```
+* Swap out the passwords and secrets 
 
 # Woden API Overview
 * Keep a list of applications
 * Keep a list of application owners
 * Provide an app-token for a specific application
-*
+
+## Owner 
  ```
 DATABASE:   wdn_db
 SCHEMA:     wdn_schema
@@ -180,7 +130,8 @@ COLUMNS:    id, type, form, active, created, updated
 INDEX:      id
 ROLE:       guest_wgn
 ROLE:       owner_editor
-
+```
+```
 API: Owner, CRUD
     owner: {id, type, |email|, name, [password]}
 
@@ -215,7 +166,9 @@ Rules:
     <owner> is {"status":"200", "token":"<app-token>"}
     <woden-token> is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "wdn_guest", "type": "owner"}
     <app-token>   is {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "????_guest", "type": "owner"}
-
+```
+## Signin
+```
 API: Signin, C
     signin:  {"type":"signin", "name":"<email>", "password":"<TEXT>"}
 
@@ -225,7 +178,9 @@ API: Signin, C
     owner:
     <owner-token> is
 
-
+```
+## App
+```
 API: App, form: {id, type, |name|, owner_id, token}
                function           token           VERB     return
                --------           -----           ----     ------

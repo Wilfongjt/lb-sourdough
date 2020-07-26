@@ -5,12 +5,12 @@
 -- system variables
 ----------------
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 -----------------
 -- FUNCTION: owner
 -----------------
 
-CREATE OR REPLACE FUNCTION wdn_schema.owner(form JSON)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.owner(form JSON)
 RETURNS JSONB AS $$
   Declare rc jsonb;
   Declare _model_owner JSONB;
@@ -37,7 +37,7 @@ RETURNS JSONB AS $$
       _model_owner := current_setting(format('app.lb_%s',_jwt_role))::jsonb;
     EXCEPTION
       WHEN others then
-        -- PERFORM wdn_schema.process_logger(format('{"status":"500", "msg":"Unknown ", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB);
+        -- PERFORM wdn_schema_1_0_0.process_logger(format('{"status":"500", "msg":"Unknown ", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB);
         return format('{"status":"500", "msg":"Unknown ", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB;
     END;
     --_model_owner := current_setting('app.lb_editor_wdn')::jsonb;
@@ -58,7 +58,7 @@ RETURNS JSONB AS $$
     -- validate attribute values
     _validation := owner_validate(_form);
     if _validation ->> 'status' != '200' then
-        -- PERFORM wdn_schema.process_logger(_validation);
+        -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
         return _validation;
     end if;
 
@@ -68,13 +68,13 @@ RETURNS JSONB AS $$
     else
       -- guest role
       BEGIN
-              INSERT INTO wdn_schema.register
-                  (exmpl_type, exmpl_form)
+              INSERT INTO wdn_schema_1_0_0.register
+                  (reg_type, reg_form)
               VALUES
                   ('owner', _form);
       EXCEPTION
           WHEN unique_violation THEN
-              -- PERFORM wdn_schema.process_logger(_form || '{"status":"400", "msg":"Bad Request, duplicate owner"}'::JSONB);
+              -- PERFORM wdn_schema_1_0_0.process_logger(_form || '{"status":"400", "msg":"Bad Request, duplicate owner"}'::JSONB);
               return '{"status":"400", "msg":"Bad App Request, duplicate owner"}'::JSONB;
           WHEN check_violation then
               ---- PERFORM process_logger();
@@ -89,15 +89,15 @@ RETURNS JSONB AS $$
     return rc;
   END;
 $$ LANGUAGE plpgsql;
-grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to guest_wgn; -- upsert
-grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to editor_wdn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.owner(JSON) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.owner(JSON) to editor_wdn; -- upsert
 
 -----------------
 -- FUNCTION: owner_VALIDATE
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION wdn_schema.owner_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.owner_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -126,8 +126,8 @@ AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.owner_validate(JSONB) to guest_wgn; -- upsert
-grant EXECUTE on FUNCTION wdn_schema.owner_validate(JSONB) to editor_wdn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.owner_validate(JSONB) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.owner_validate(JSONB) to editor_wdn; -- upsert
 
 
 -----------------
@@ -136,9 +136,9 @@ grant EXECUTE on FUNCTION wdn_schema.owner_validate(JSONB) to editor_wdn; -- ups
 -- select an owner
 
 
-CREATE OR REPLACE FUNCTION wdn_schema.owner(id TEXT) RETURNS JSONB
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.owner(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from wdn_schema.register where exmpl_id=id and exmpl_type='owner';
+  Select reg_form-'password' as owner from wdn_schema_1_0_0.register where reg_id=id and reg_type='owner';
 $$ LANGUAGE sql;
 
-grant EXECUTE on FUNCTION wdn_schema.owner(JSON) to editor_wdn; -- select
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.owner(JSON) to editor_wdn; -- select

@@ -4,14 +4,14 @@
 ------------------------
 \c wdn_db;
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 BEGIN;
 
   SELECT plan(3);
   -- Add user for test
   SELECT is (
-    wdn_schema.owner('{
+    wdn_schema_1_0_0.owner('{
       "name":  "me@someplace.com",
       "password": "a1A!aaaa"
       }'::JSON
@@ -21,7 +21,7 @@ BEGIN;
   );
   -- Insert
 SELECT ok (
-  wdn_schema.signin('{
+  wdn_schema_1_0_0.signin('{
     "name":  "me@someplace.com",
     "password": "a1A!aaaa"
     }'
@@ -29,7 +29,7 @@ SELECT ok (
 );
 /*
   SELECT is (
-    wdn_schema.signin('{
+    wdn_schema_1_0_0.signin('{
       "name":  "me@someplace.com",
       "password": "a1A!aaaa"
       }'::JSON
@@ -45,7 +45,7 @@ SELECT ok (
   -- Update
   /*
   SELECT is (
-    wdn_schema.owner('{"type": "owner",
+    wdn_schema_1_0_0.owner('{"type": "owner",
       "app_id": "my_app@1.0.0",
       "name": "me@someplace.com",
       "password": "a2A!aaaa"}'::JSON
@@ -56,7 +56,7 @@ SELECT ok (
 */
   -- select
   --SELECT matches(
-  --  wdn_schema.owner('my_app@1.0.0'::TEXT)::TEXT,
+  --  wdn_schema_1_0_0.owner('my_app@1.0.0'::TEXT)::TEXT,
   --  '[a-zA-Z\.0-9_]+',
   --  'app - select from regi ster by id and check token'::TEXT
   --);

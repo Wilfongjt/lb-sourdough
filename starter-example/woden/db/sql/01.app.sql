@@ -1,12 +1,12 @@
 \c wdn_db
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 -----------------
 -- FUNCTION: APP_VALIDATE
 -----------------
 
-CREATE OR REPLACE FUNCTION wdn_schema.app_validate(form JSONB) RETURNS JSONB
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.app_validate(form JSONB) RETURNS JSONB
 AS $$
 
   BEGIN
@@ -32,7 +32,7 @@ AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.app_validate(JSONB) to editor_wdn;
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.app_validate(JSONB) to editor_wdn;
 
 
 -- FUNCTION
@@ -41,7 +41,7 @@ grant EXECUTE on FUNCTION wdn_schema.app_validate(JSONB) to editor_wdn;
 -----------------
 -- inserts an application record into the system
 
-CREATE OR REPLACE FUNCTION wdn_schema.app(form JSON)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.app(form JSON)
 RETURNS JSONB AS $$
   Declare rc jsonb;
   Declare _model_user JSONB;
@@ -59,7 +59,7 @@ RETURNS JSONB AS $$
     end if;
     if _jwt_role != 'editor_wdn' then
       _validation := format('{"status":"401", "msg":"Unauthorized Token", "jwt_role":"%s"}',_jwt_role)::JSONB;
-      -- PERFORM wdn_schema.process_logger(_validation);
+      -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
       return _validation;
     end if;
     -- type stamp form
@@ -70,9 +70,9 @@ RETURNS JSONB AS $$
     EXCEPTION
       WHEN others then
         _validation := format('{"status": "401", "msg":"Unauthorized Token", "jwt_role":"%s","model_role":%s}',_jwt_role,_model_user )::JSONB;
-        -- PERFORM wdn_schema.process_logger(_validation);
+        -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
         return _validation;
-        ---- PERFORM wdn_schema.process_logger(format('{"status":"500", "msg":"Unknown APP", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB);
+        ---- PERFORM wdn_schema_1_0_0.process_logger(format('{"status":"500", "msg":"Unknown APP", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB);
         --return format('{"status":"500", "msg":"Unknown APP", "SQLSTATE":"%s", "role":"%s"}',SQLSTATE, _jwt_role)::JSONB;
     END;
 
@@ -82,27 +82,27 @@ RETURNS JSONB AS $$
 
     _validation := app_validate(_form);
     if _validation ->> 'status' != '200' then
-      -- PERFORM wdn_schema.process_logger(_validation);
+      -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
       return _validation;
     end if;
 
     BEGIN
-            INSERT INTO wdn_schema.register
-                (exmpl_type, exmpl_form)
+            INSERT INTO wdn_schema_1_0_0.register
+                (reg_type, reg_form)
             VALUES
                 ('app', _form );
     EXCEPTION
         WHEN unique_violation THEN
             _validation := '{"status":"400", "msg":"Bad App Request, duplicate error"}'::JSONB;
-            -- PERFORM wdn_schema.process_logger(_validation);
+            -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
             return _validation;
         WHEN check_violation then
             _validation :=  '{"status":"400", "msg":"Bad App Request, validation error"}'::JSONB;
-            -- PERFORM wdn_schema.process_logger(_validation);
+            -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
             return _validation;
         WHEN others then
             _validation :=  format('{"status":"500", "msg":"Unknown App insertion error", "SQLSTATE":"%s"}',SQLSTATE)::JSONB;
-            -- PERFORM wdn_schema.process_logger(_validation);
+            -- PERFORM wdn_schema_1_0_0.process_logger(_validation);
             return _validation;
     END;
 
@@ -112,14 +112,14 @@ RETURNS JSONB AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.app(JSON) to editor_wdn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.app(JSON) to editor_wdn; -- C
 
 --------------------
 -- FUNCTION: APP(TEXT)
 --------------------
-CREATE OR REPLACE FUNCTION wdn_schema.app(id TEXT) RETURNS JSONB
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.app(id TEXT) RETURNS JSONB
 AS $$
-  Select exmpl_form from wdn_schema.register where exmpl_id=id and exmpl_type='app';
+  Select reg_form from wdn_schema_1_0_0.register where reg_id=id and reg_type='app';
 $$ LANGUAGE sql;
 
 grant guest_wgn to authenticator;

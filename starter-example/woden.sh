@@ -30,16 +30,6 @@ echo ""
 # good WODEN_TOKEN
 export WODEN_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
 echo "WODEN_TOKEN is $WODEN_TOKEN"
-echo "--- Add Owner"
-###############
-# Add an owner aka a user with special privileges.
-###############
-curl http://localhost:3100/rpc/owner -X POST \
-     -H "Authorization: Bearer $WODEN_TOKEN"   \
-     -H "Content-Type: application/json" \
-     -H "Prefer: params=single-object"\
-     -d '{"name":"me@someplace.com", "password":"a1A!aaaa"}'
-echo "---"
 
 ################
 # Signin and get owner-token
@@ -49,7 +39,7 @@ export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
         -H "Authorization: Bearer $WODEN_TOKEN" \
         -H "Content-Type: application/json" \
         -H "Prefer: params=single-object" \
-        -d '{"name":"me@someplace.com", "password":"a1A!aaaa"}')
+        -d '{"name":"woden@lyttlebit.com", "password":"a1A!aaaa"}')
 
 echo "AUTHORIZED_USER is $AUTHORIZED_USER"
 # pull data out of json
@@ -66,7 +56,7 @@ curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $AUTHORIZED_USER"   \
      -H "Content-Type: application/json" \
      -H "Prefer: params=single-object"\
-     -d '{"name":"woden@1.0.0", "owner_id":"me@someplace.com"}'
+     -d '{"name":"woden@1.0.0", "owner_id":"woden@lyttlebit.com"}'
 
 ###############
 # Set Application Token

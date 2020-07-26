@@ -1,17 +1,17 @@
 
 \c wdn_db;
 
---CREATE SCHEMA if not exists wdn_schema;
+--CREATE SCHEMA if not exists wdn_schema_1_0_0;
 ----------------
 -- system variables
 ----------------
 
 ---------------
--- SCHEMA: wdn_schema
+-- SCHEMA: wdn_schema_1_0_0
 ---------------
 
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 -----------------
 -- FUNCTION: owner
@@ -19,7 +19,7 @@ SET search_path TO wdn_schema, public;
 -- Create or Update an owner
 
 
-CREATE OR REPLACE FUNCTION wdn_schema.process_logger(_form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.process_logger(_form JSONB)
 RETURNS JSONB AS $$
   Declare rc jsonb;
   Declare _model_owner JSONB;
@@ -43,8 +43,8 @@ RETURNS JSONB AS $$
       -- obfuscate the password before logging
       --_form := form::JSONB || '{"password":"sssssssssss"}'::JSONB;
       BEGIN
-              INSERT INTO wdn_schema.register
-                  (exmpl_type, exmpl_form)
+              INSERT INTO wdn_schema_1_0_0.register
+                  (reg_type, reg_form)
               VALUES
                   ('process', _form);
       EXCEPTION
@@ -66,7 +66,7 @@ $$ LANGUAGE plpgsql;
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION wdn_schema.process_logger_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.process_logger_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -103,16 +103,16 @@ $$ LANGUAGE plpgsql;
 ---------------------
 -- GRANT: process_logger_role
 ---------------------
-grant usage on schema wdn_schema to process_logger_role;
+grant usage on schema wdn_schema_1_0_0 to process_logger_role;
 
-grant insert on wdn_schema.register to process_logger_role; -- C ... 'app' only
-grant select on wdn_schema.register to process_logger_role; -- R ... 'owner', 'app'
+grant insert on wdn_schema_1_0_0.register to process_logger_role; -- C ... 'app' only
+grant select on wdn_schema_1_0_0.register to process_logger_role; -- R ... 'owner', 'app'
 
 -- TRIGGER
 -- process_logger_role should inhert regi ster trigger privileges
 
-grant EXECUTE on FUNCTION wdn_schema.register_upsert_trigger_func to process_logger_role;
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.register_upsert_trigger_func to process_logger_role;
 
-grant EXECUTE on FUNCTION wdn_schema.process_logger(JSONB) to process_logger_role; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.process_logger(JSONB) to process_logger_role; -- upsert
 
-grant EXECUTE on FUNCTION wdn_schema.process_logger_validate(JSONB) to process_logger_role;
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.process_logger_validate(JSONB) to process_logger_role;

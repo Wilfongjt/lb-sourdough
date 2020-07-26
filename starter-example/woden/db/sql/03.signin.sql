@@ -1,14 +1,14 @@
 
 \c wdn_db;
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 -----------------
 -- FUNCTION: signin_validate
 -----------------
 -- Permissions: EXECUTE
 -- Returns: JSONB
-CREATE OR REPLACE FUNCTION wdn_schema.signin_validate(form JSONB)
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.signin_validate(form JSONB)
 RETURNS JSONB
 AS $$
 
@@ -35,10 +35,10 @@ AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.signin_validate(JSONB) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.signin_validate(JSONB) to guest_wgn; -- upsert
 
 
-CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION wdn_schema_1_0_0.signin(form JSON) RETURNS JSON AS $$
   -- make token to execute app(JSON)
   declare rc JSONB;
   declare signin_token TEXT;
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
     end if;
     if not(_jwt_role = 'guest_wgn') then
       _validation := '{"status":"401", "msg":"Unauthorized"}'::JSONB;
-      PERFORM wdn_schema.process_logger(_validation);
+      PERFORM wdn_schema_1_0_0.process_logger(_validation);
       return _validation;
     end if;
 
@@ -68,7 +68,7 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
     _model_owner := current_setting('app.lb_guest_wgn')::jsonb;
     if not(_model_owner ->> 'role' = _jwt_role) then
         _validation := http_response('401','Unauthorized');
-        PERFORM wdn_schema.process_logger(_validation);
+        PERFORM wdn_schema_1_0_0.process_logger(_validation);
         return _validation;
     end if;
     --
@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
     -- validate attribute values
     _validation := signin_validate(_form);
     if _validation ->> 'status' != '200' then
-        PERFORM wdn_schema.process_logger(_validation);
+        PERFORM wdn_schema_1_0_0.process_logger(_validation);
         return _validation;
     end if;
     -- remove password
@@ -85,10 +85,10 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
     _form := _form - 'password';
     -- validate name and password
 
-    if not(exists(select exmpl_form from wdn_schema.register where exmpl_id = _form ->> 'name' and exmpl_form ->> 'password' = crypt(_pw, exmpl_form ->> 'password'))) then
+    if not(exists(select reg_form from wdn_schema_1_0_0.register where reg_id = _form ->> 'name' and reg_form ->> 'password' = crypt(_pw, reg_form ->> 'password'))) then
       -- login failure
       _form := _form || '{"status":"404", "msg":"Not Found"}'::JSONB;
-      PERFORM wdn_schema.process_logger(_form);
+      PERFORM wdn_schema_1_0_0.process_logger(_form);
       return http_response('401','Unauthenticated');
     end if;
 
@@ -107,7 +107,7 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
     -- log success
     _validation := _form || '{"status":"200"}'::JSONB;
 
-    PERFORM wdn_schema.process_logger(_validation);
+    PERFORM wdn_schema_1_0_0.process_logger(_validation);
     -- test for owner account
     -- wrap signin_token in JSON
     return (SELECT row_to_json(r) as result
@@ -122,4 +122,4 @@ CREATE OR REPLACE FUNCTION wdn_schema.signin(form JSON) RETURNS JSON AS $$
   END;
 $$ LANGUAGE plpgsql;
 
-grant EXECUTE on FUNCTION wdn_schema.signin(JSON) to guest_wgn; -- upsert
+grant EXECUTE on FUNCTION wdn_schema_1_0_0.signin(JSON) to guest_wgn; -- upsert

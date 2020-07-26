@@ -4,14 +4,14 @@
 ------------------------
 \c wdn_db;
 
-SET search_path TO wdn_schema, public;
+SET search_path TO wdn_schema_1_0_0, public;
 
 BEGIN;
 
   SELECT plan(2);
   -- Insert
   SELECT is (
-    wdn_schema.app('{
+    wdn_schema_1_0_0.app('{
       "name": "my_app@1.0.0",
       "owner_id": "me@someplace.com"}'::JSON
     ),
@@ -21,7 +21,7 @@ BEGIN;
 
   -- select
   SELECT matches(
-    wdn_schema.app('my_app@1.0.0'::TEXT)::TEXT,
+    wdn_schema_1_0_0.app('my_app@1.0.0'::TEXT)::TEXT,
     '[a-zA-Z\.0-9_]+',
     'app - select from register by id and check token'::TEXT
   );
