@@ -38,7 +38,6 @@ echo "--- Signin"
 export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
         -H "Authorization: Bearer $WODEN_TOKEN" \
         -H "Content-Type: application/json" \
-        -H "Content-Profile: wdn_schema_1_0_0" \
         -H "Prefer: params=single-object" \
         -d '{"name":"woden@lyttlebit.com", "password":"a1A!aaaa"}')
 
@@ -56,7 +55,6 @@ echo "--- Add APP"
 curl http://localhost:3100/rpc/app -X POST \
      -H "Authorization: Bearer $AUTHORIZED_USER"   \
      -H "Content-Type: application/json" \
-     -H "Content-Profile: wdn_schema_1_0_0" \
      -H "Prefer: params=single-object"\
      -d '{"name":"woden@1.0.0", "owner_id":"woden@lyttlebit.com"}'
 

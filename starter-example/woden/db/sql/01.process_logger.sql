@@ -14,7 +14,7 @@
 SET search_path TO wdn_schema_1_0_0, public;
 
 -----------------
--- FUNCTION: owner
+-- FUNCTION: process_logger
 -----------------
 -- Create or Update an owner
 
@@ -78,22 +78,6 @@ AS $$
     if not(form ? 'type' ) then
        return '{"status":"400","msg":"Bad Request, process_logger_validate is missing one or more form attributes"}'::JSONB;
     end if;
-    -- validate attribute values
-    --if not(form ->> 'type' = 'process_logger') then
-    --   return '{"status":"400", "msg":"Bad Request type value."}'::JSONB;
-    --end if;
-    -- proper application name
-    --if not( exists( select regexp_matches(form ->> 'app_id', '^[a-z][a-z_]+@[1-9]+\.[0-9]+\.[0-9]+') ) ) then
-    --   return '{"status":"400", "msg":"Bad Request, bad application id."}'::JSONB;
-    --end if;
-    -- proper password
-    --if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
-    --   return '{"status":"400", "msg":"Bad Request, bad password."}'::JSONB;
-    --end if;
-    -- proper name ... name
-    --if not( exists( select regexp_matches(form ->> 'name', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-    --   return format('{"status":"400", "msg":"Bad Request, bad name.", "name":"%s"}', form ->> 'name')::JSONB;
-    --end if;
 
     return '{"status": "200"}'::JSONB;
   END;
