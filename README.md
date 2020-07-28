@@ -1,11 +1,10 @@
 # lb-sourdough
-A starter for an API backed by a single table. 
+A starter for an API, backed by a single table. 
 
 # Expectations
 * The system is enabled by a JWT token called a woden
 * The system expects to be run over an encrypted connection
 * Woden is the origin
-* LyttleBit is Woden
 * RegisterAPI is the application and actor management system API
 * RegisterAPI expects share your application API with multiple clients
 * RegisterAPI expects multiple actors/users
@@ -17,6 +16,7 @@ A starter for an API backed by a single table.
 * Passwords are never passed out of the database system
 * Registered applications have an application specific token called an app-token
 * Actor is a user
+* Woden is an actor 
 * Actors get a temporary JWT token, called a actor-token
 * Actor-tokens expire
 * Getting a woden does not require a token
@@ -24,43 +24,100 @@ A starter for an API backed by a single table.
 * Wodens can be replaced
 
 ## Strategy
-* Use schemata for versioning the API
-* Configure schema API versions using db/woden_N_N_N.sql file name pattern ( a new file for each version)
-* Leave older versions in the db/ folder. This will leave all versions in the database 
-* docker-compose can only run one schema. Designate current schema in the .env file
+* Single database, single table design
+* Use postgres __schemata__ for versioning the API
+* Separate API functions sql file  
+* Use __docker-compose__ to pull it all together.
 
-# Woden API 1.0.0 (wdn_1_0_0)
-Located in woden_1_0_0.sql 
+
+## Prerequisites
+* Woden-token
+* environment variable file (.env)
+
+## Woden Token
+The woden token authorizes access to the signin function of the Woden API.  
+Put the Woden Token in the client environment. 
+* Manually create a woden (JSON Web Token) at https://jwt.io
+    * payload: {"role": "guest_wdn"}
+    * jwt.io requires a passord and that password should be at least 32 characters long and is the same value as POSTGRES_JWT_SECRET
+
+## Important
+* Change your woden. The woden token shown below is dependent on the POSTGRES_JWT_SECRET.  Changing the POSTGRES_JWT_SECRET will change the woden.  The woden token below will work for every application that uses the "PASSWORDmustBEATLEAST32CHARSLONGLONG" secret.  Not good. Change your password.
+
+
+# Woden Example
+The Germanic chief god, distributor of talents, wisdom and war. In this case, Woden distributes access and permissions via JSON Web Tokens. 
+* Initialize a woden when
+
+## Woden API 1.1.0 (wdn_1_1_0)
+* actor(form JSON) - insert an actor by woden, encrypts password
+* app(form JSON) - insert an application, generates an application specific JWT
+* owner(form JSON) - insert an owner by woden, encrypts password
+* siginin(form JSON) - insert an attempt to login, returns JWT on success
+
+### Environment Setup (.env)
+.env file goes in folder with docker-compose.yml
 ```
-owner(owner_form JSON)
-owner(id TEXT, owner_form JSON)
-owner(id TEXT)
-
-signin(signin_form JSON)
-
-app(app_form JSON)
-app(id TEXT, app_form JSON)
-app(id TEXT)
+    # Postgres
+    POSTGRES_DB=wdn_db
+    POSTGRES_USER=postgres
+    POSTGRES_PASSWORD=mysecretdatabasepassword
+    POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
+    # PostREST, setup all version schemata
+    PGRST_DB_SCHEMA=wdn_schema_1_0_0,wdn_schema_1_1_0
+    PGRST_DB_ANON_ROLE=guest_wdn
+    # Lyttlebit
+    LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}
+    LB_GUEST_PASSWORD=mysecretclientpassword
 ```
 
-# Setup
-Environment (.env)
+## Woden API 1.0.0 (wdn_1_0_0)
+* app(JSON)- insert an application, generates an application specific JWT
+* siginin(JSON) - insert attempt to login, returns JWT on sucess
+* owner(form JSON) - insert an owner by woden, encrypts password
+
+### Environment Setup (.env)
+.env file goes in folder with docker-compose.yml
 ```
-#########################
-######## DOCKER RUNTIME
-##########################
-POSTGRES_DB=wdn_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=mysecretdatabasepassword
-POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
-LB_GUEST_PASSWORD=mysecretclientpassword
-PGRST_DB_SCHEMA=wdn_schema_1_0_0
-PGRST_DB_ANON_ROLE=wdn_guest
-
-WODENADMIN=[{"name":"admin@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}]
-
+    # Postgres
+        POSTGRES_DB=wdn_db
+        POSTGRES_USER=postgres
+        POSTGRES_PASSWORD=mysecretdatabasepassword
+        POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
+    # PostREST
+        PGRST_DB_SCHEMA=wdn_schema_1_0_0
+        PGRST_DB_ANON_ROLE=guest_wdn
+    # Lyttlebit
+        LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}
+        LB_GUEST_PASSWORD=mysecretclientpassword
 ```
+## Curl
+```
+    # woden (JWT)
+        export WODEN_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
 
+    # Signin and get owner-token
+        export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
+                -H "Authorization: Bearer $WODEN_TOKEN" \
+                -H "Content-Type: application/json" \
+                -H "Content-Profile: wdn_schema_1_0_0" \
+                -H "Prefer: params=single-object" \
+                -d '{"name":"woden@lyttlebit.com", "password":"a1A!aaaa"}')
+
+    # pull data out of json and set a one time token for the woden 
+        export AUTHORIZED_USER=$(echo $AUTHORIZED_USER | grep -o '["^][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*["$]')
+    
+    # get rid of enclosing quotes
+        export AUTHORIZED_USER=$(echo $AUTHORIZED_USER | sed 's/"//g' )
+
+    # use the one time token to add an application to db
+        curl http://localhost:3100/rpc/app -X POST \
+             -H "Authorization: Bearer $AUTHORIZED_USER"   \
+             -H "Content-Type: application/json" \
+             -H "Content-Profile: wdn_schema_1_0_0" \
+             -H "Prefer: params=single-object"\
+             -d '{"name":"woden@1.0.0", "owner_id":"woden@lyttlebit.com"}'
+```
 
 
 
@@ -70,20 +127,7 @@ WODENADMIN=[{"name":"admin@lyttlebit.com","password":"a1A!aaaa","roles":"admin"}
 
 
 ## Curl Client
-
 *
-# Woden
-The Germanic chief god, distributor of talents, wisdom and war. In this case, Woden distributes access and permissions via JSON Web Tokens. 
-
-## Frontend Prerequisites
-* Woden-token
-
-### Woden Token
-The woden token authorizes access to the signin function of the Woden API.  
-Put the Woden Token in the client environment. 
-* Manually create a JSON Web Token for Woden at https://jwt.io
-    * payload: {"iss": "LyttleBit", "sub": "Origin", "name": "Woden", "role": "guest_wdn"}
-    * password should be 32 characters long and is the same value as POSTGRES_JWT_SECRET
 
 
 ## Backend Prerequisites 
@@ -109,10 +153,9 @@ POSTGRES_JWT_SECRET=PASSWORDmustBEATLEAST32CHARSLONGLONG
 # api
 PGRST_DB_SCHEMA=wdn_v_1_0_0
 PGRST_DB_ANON_ROLE=wdn_guest
+LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
 #client
 LB_GUEST_PASSWORD=mysecretclientpassword
-LB_WODEN={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
-
 ```
 * Swap out the passwords and secrets 
 

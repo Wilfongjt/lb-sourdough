@@ -126,14 +126,14 @@ CREATE DATABASE wdn_db;
 
 \c wdn_db
 
-CREATE SCHEMA if not exists wdn_schema_1_0_0;
+-- CREATE SCHEMA if not exists wdn_schema_1_0_0;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;;
 CREATE EXTENSION IF NOT EXISTS pgtap;;
 CREATE EXTENSION IF NOT EXISTS pgjwt;;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-
+/*
 -----------------
 -- HOST variables
 -----------------
@@ -166,19 +166,25 @@ ALTER DATABASE wdn_db SET "app.lb_editor_wdn" To '{"role":"editor_wdn"}';
 -- If not specified, NOLOGIN is the default, except when CREATE ROLE is invoked through its alternative spelling CREATE USER.
 
 -- IHERE
-
+*/
 CREATE ROLE authenticator noinherit login password :lb_guest_password ;
 
 CREATE ROLE guest_wgn nologin noinherit; -- permissions to execute app() and insert type=owner into wdn_schema_1_0_0.register
 CREATE ROLE editor_wdn nologin noinherit; -- permissions to execute app() and insert type=app into wdn_schema_1_0_0.register
 CREATE ROLE process_logger_role nologin;
 
+/*
+--------------
+-- SCHEMA
+--------------
+CREATE SCHEMA if not exists wdn_schema_1_0_0;
 ---------------
 -- SCHEMA Permissions
 ---------------
 grant usage on schema wdn_schema_1_0_0 to guest_wgn;
 grant usage on schema wdn_schema_1_0_0 to editor_wdn;
 grant usage on schema wdn_schema_1_0_0 to process_logger_role;
+
 ---------------
 -- SCHEMA: set
 ---------------
@@ -242,13 +248,10 @@ BEGIN
     IF (TG_OP = 'INSERT') THEN
       IF (NEW.reg_form ->> 'type' = 'owner' or NEW.reg_form ->> 'type' = 'woden') then
         NEW.reg_id := NEW.reg_form ->> 'name';
-        --_form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.reg_form ->> 'email', crypt(NEW.reg_password, gen_salt('bf')) )::JSONB;
-        --_pw := crypt(NEW.reg_form ->> 'password', gen_salt('bf'));
         _form := format('{"id":"%s", "password":"%s"}'::TEXT, NEW.reg_form ->> 'name', crypt(NEW.reg_form ->> 'password', gen_salt('bf')) )::JSONB;
 
         NEW.reg_form := NEW.reg_form  || _form;
         -- encrypt password
-        --NEW.reg_password := crypt(NEW.reg_password, gen_salt('bf'));
       ELSEIF (NEW.reg_form ->> 'type' = 'app') then
         -- create guest token for use by new app, similar to woden
 
@@ -347,3 +350,4 @@ grant EXECUTE on FUNCTION wdn_schema_1_0_0.is_valid_token(TEXT, TEXT) to editor_
 -- setup woden as user
 ----------------
 insert into wdn_schema_1_0_0.register (reg_type, reg_form) values ('woden', (:lb_woden::JSONB || '{"type":"woden", "roles":"admin"}'::JSONB) );
+*/
