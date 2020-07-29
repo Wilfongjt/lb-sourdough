@@ -54,7 +54,7 @@ The starter-token authorizes access to the signin function of the Woden API.
     LB_STARTER={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
     LB_GUEST_PASSWORD=mysecretclientpassword
 ```
-### Curl
+### Simple Client: Curl
 ```
     # woden (JWT)
         export STARTER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
@@ -101,7 +101,7 @@ The starter-token authorizes access to the signin function of the Woden API.
         LB_STARTER={"name":"woden@lyttlebit.com","password":"a1A!aaaa"}
         LB_GUEST_PASSWORD=mysecretclientpassword
 ```
-## Curl
+## Simple Client: Curl
 ```
     # woden (JWT)
         export STARTER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
