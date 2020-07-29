@@ -24,37 +24,37 @@
 ###############
 echo ""
 ###############
-# Set WODEN_TOKEN environment variable to help with curl
+# Set STARTER_TOKEN environment variable to help with curl
 ###############
 
-# good WODEN_TOKEN
-export WODEN_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
-echo "WODEN_TOKEN is $WODEN_TOKEN"
+# good STARTER_TOKEN
+export STARTER_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJMeXR0bGVCaXQiLCJzdWIiOiJPcmlnaW4iLCJuYW1lIjoiV29kZW4iLCJyb2xlIjoiZ3Vlc3Rfd2duIn0.XjYxFfJ4HvgP6T7OupQdeMuxA9_WZCzRYRUGuVhNUQ4
+echo "STARTER_TOKEN is $STARTER_TOKEN"
 
 ################
 # Signin and get owner-token
 ################
 echo "--- Signin"
-export AUTHORIZED_USER=$(curl http://localhost:3100/rpc/signin -X POST \
-        -H "Authorization: Bearer $WODEN_TOKEN" \
+export OWNER_TOKEN=$(curl http://localhost:3100/rpc/signin -X POST \
+        -H "Authorization: Bearer $STARTER_TOKEN" \
         -H "Content-Type: application/json" \
         -H "Content-Profile: wdn_schema_1_0_0" \
         -H "Prefer: params=single-object" \
         -d '{"name":"woden@lyttlebit.com", "password":"a1A!aaaa"}')
 
-echo "AUTHORIZED_USER is $AUTHORIZED_USER"
+echo "OWNER_TOKEN is $OWNER_TOKEN"
 # pull data out of json
-export AUTHORIZED_USER=$(echo $AUTHORIZED_USER | grep -o '["^][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*["$]')
+export OWNER_TOKEN=$(echo $OWNER_TOKEN | grep -o '["^][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*[\.][a-zA-Z0-9_\-]*["$]')
 # get rid of enclosing quotes
-export AUTHORIZED_USER=$(echo $AUTHORIZED_USER | sed 's/"//g' )
+export OWNER_TOKEN=$(echo $OWNER_TOKEN | sed 's/"//g' )
 echo "---"
-echo "AUTHORIZED_USER is $AUTHORIZED_USER"
+echo "OWNER_TOKEN is $OWNER_TOKEN"
 echo "--- Add APP"
 ###############
 # add an application to db
 ###############
 curl http://localhost:3100/rpc/app -X POST \
-     -H "Authorization: Bearer $AUTHORIZED_USER"   \
+     -H "Authorization: Bearer $OWNER_TOKEN"   \
      -H "Content-Type: application/json" \
      -H "Content-Profile: wdn_schema_1_0_0" \
      -H "Prefer: params=single-object"\
