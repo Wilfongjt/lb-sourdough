@@ -1,5 +1,5 @@
 # lb-sourdough
-A starter for an API, backed by a single table. 
+A starter for an API, with a single table backend. 
 
 # Expectations
 * The system is enabled by a JWT token called a starter-token
