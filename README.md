@@ -21,7 +21,7 @@ A starter for an API, backed by a single table.
 
 
 # Example: Woden API
-The Germanic chief god, distributor of talents, wisdom and war. In this case, Woden distributes access and permissions via JSON Web Tokens. The origin, the begining, the start. The perfect name.
+The Germanic chief god, distributor of talents, wisdom and war. In this case, Woden distributes access and permissions via JSON Web Tokens. The origin, the begining, the start. Woden, the perfect name.
 
 ## Starter Token
 The starter-token authorizes access to the signin function of the Woden API.  
