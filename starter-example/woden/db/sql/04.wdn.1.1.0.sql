@@ -1,4 +1,4 @@
-
+\c wdn_db
 --------------
 -- Environment
 --------------
@@ -6,8 +6,8 @@
 \set postgres_jwt_secret `echo "'$POSTGRES_JWT_SECRET'"`
 \set lb_guest_password `echo "'$LB_GUEST_PASSWORD'"`
 \set lb_woden `echo "'$LB_WODEN'"`
--- select :lb_guest_password;
--- select :postgres_jwt_secret ;
+--select :lb_guest_password;
+--select :postgres_jwt_secret ;
 --------------
 -- DATABASE
 --------------
@@ -20,7 +20,7 @@
 ---------------
 -- REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
-\c wdn_db
+--\c wdn_db
 
 CREATE SCHEMA if not exists wdn_schema_1_1_0;
 
@@ -50,24 +50,6 @@ ALTER DATABASE wdn_db SET "app.lb_guest_wgn" To '{"role":"guest_wgn"}';
 
 ALTER DATABASE wdn_db SET "app.lb_editor_wdn" To '{"role":"editor_wdn"}';
 
--------------------
--- ROLES
--------------------
----- role password cannot be a variable...doesnt work
--------------------
--- These clauses determine whether a role is allowed to log in;
--- that is, whether the role can be given as the initial session authorization name during client connection.
--- A role having the LOGIN attribute can be thought of as a user.
--- Roles without this attribute are useful for managing database privileges, but are not users in the usual sense of the word.
--- If not specified, NOLOGIN is the default, except when CREATE ROLE is invoked through its alternative spelling CREATE USER.
-
--- IHERE
-
---CREATE ROLE authenticator noinherit login password :lb_guest_password ;
-
---CREATE ROLE guest_wgn nologin noinherit; -- permissions to execute app() and insert type=owner into wdn_schema_1_1_0.register
---CREATE ROLE editor_wdn nologin noinherit; -- permissions to execute app() and insert type=app into wdn_schema_1_1_0.register
---CREATE ROLE process_logger_role nologin;
 
 ---------------
 -- SCHEMA Permissions
@@ -193,61 +175,10 @@ CREATE TRIGGER register_ins_upd_trigger
 
 grant TRIGGER on wdn_schema_1_1_0.register to guest_wgn;
 grant TRIGGER on wdn_schema_1_1_0.register to editor_wdn;
- -----------------
- -- FUNCTION: http_response
- -----------------
-
- Create Or Replace FUNCTION wdn_schema_1_1_0.http_response(_status text, _msg text) RETURNS JSON AS $$
-   SELECT
-     row_to_json(r)
-   FROM (
-     SELECT
-       _status as status,
-       _msg as msg
-   ) r;
- $$ LANGUAGE sql;
-
-grant EXECUTE on FUNCTION wdn_schema_1_1_0.http_response(TEXT, TEXT) to guest_wgn; -- C
-grant EXECUTE on FUNCTION wdn_schema_1_1_0.http_response(TEXT, TEXT) to editor_wdn; -- C
-
-------------
--- FUNCTION: IS_VALID_TOKEN
------------------
-
-CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.is_valid_token(_token TEXT, expected_role TEXT) RETURNS Boolean
-AS $$
-
-  DECLARE good Boolean;
-  DECLARE actual_role TEXT;
-
-BEGIN
-  -- does role in token match expected role
-  -- use db parameter app.settings.jwt_secret
-  -- process the token
-  -- return true/false
-  good:=false;
-
-  select payload ->> 'role' as role into actual_role  from verify(_token, current_setting('app.settings.jwt_secret'));
-
-  if expected_role = actual_role then
-    good := true;
-  end if;
-
-  RETURN good;
-END;  $$ LANGUAGE plpgsql;
-
-grant EXECUTE on FUNCTION wdn_schema_1_1_0.is_valid_token(TEXT, TEXT) to guest_wgn; -- C
-grant EXECUTE on FUNCTION wdn_schema_1_1_0.is_valid_token(TEXT, TEXT) to editor_wdn; -- C
-
-----------------
--- setup woden as user
-----------------
-insert into wdn_schema_1_1_0.register (reg_type, reg_form) values ('woden', (:lb_woden::JSONB || '{"type":"woden", "roles":"admin"}'::JSONB) );
 
   -----------------
   -- FUNCTION: process_logger
   -----------------
-
 
   CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.process_logger(_form JSONB)
   RETURNS JSONB AS $$
@@ -332,128 +263,56 @@ insert into wdn_schema_1_1_0.register (reg_type, reg_form) values ('woden', (:lb
   grant EXECUTE on FUNCTION wdn_schema_1_1_0.process_logger_validate(JSONB) to process_logger_role;
 
 
-  -----------------
-  -- FUNCTION: signin_validate
-  -----------------
-  -- Permissions: EXECUTE
-  -- Returns: JSONB
-  CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.signin_validate(form JSONB)
-  RETURNS JSONB
-  AS $$
+ -----------------
+ -- FUNCTION: http_response
+ -----------------
 
-    BEGIN
+ Create Or Replace FUNCTION wdn_schema_1_1_0.http_response(_status text, _msg text) RETURNS JSON AS $$
+   SELECT
+     row_to_json(r)
+   FROM (
+     SELECT
+       _status as status,
+       _msg as msg
+   ) r;
+ $$ LANGUAGE sql;
 
-      -- confirm all required attributes are in form
-      if not(form ? 'type' and form ? 'name' and form ? 'password') then
-          return http_response('400', 'Bad Request, missing one or more form attributes.');
-      end if;
-      -- validate attribute values
-      if not(form ->> 'type' = 'signin') then
-          return http_response('400', 'Bad Request type value.');
-      end if;
-      -- proper password
-      if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
-          return http_response('400', 'Bad Request, bad password.');
-      end if;
-      -- proper name ... name
-      if not( exists( select regexp_matches(form ->> 'name', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
-        return http_response('400', format('Bad Request, bad name.'));
-      end if;
+grant EXECUTE on FUNCTION wdn_schema_1_1_0.http_response(TEXT, TEXT) to guest_wgn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_1_0.http_response(TEXT, TEXT) to editor_wdn; -- C
 
-      return http_response('200', 'OK');
-    END;
-  $$ LANGUAGE plpgsql;
+------------
+-- FUNCTION: IS_VALID_TOKEN
+-----------------
 
-  grant EXECUTE on FUNCTION wdn_schema_1_1_0.signin_validate(JSONB) to guest_wgn; -- upsert
+CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.is_valid_token(_token TEXT, expected_role TEXT) RETURNS Boolean
+AS $$
 
+  DECLARE good Boolean;
+  DECLARE actual_role TEXT;
 
-  CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.signin(form JSON) RETURNS JSON AS $$
-    -- make token to execute app(JSON)
-    declare rc JSONB;
-    declare signin_token TEXT;
-    declare process_error JSONB;
-    declare _form JSONB;
-    Declare _jwt_role TEXT;
-    Declare _model_owner JSONB;
-    Declare _validation JSONB;
-    Declare _pw TEXT;
-    BEGIN
-    -- claims check
-      _jwt_role := current_setting('request.jwt.claim.role','t');
-      if _jwt_role is NULL then
-        -- needed for tapps testing only
-        _jwt_role := 'guest_wgn';
-      end if;
-      if not(_jwt_role = 'guest_wgn') then
-        _validation := '{"status":"401", "msg":"Unauthorized"}'::JSONB;
-        PERFORM wdn_schema_1_1_0.process_logger(_validation);
-        return _validation;
-      end if;
+BEGIN
+  -- does role in token match expected role
+  -- use db parameter app.settings.jwt_secret
+  -- process the token
+  -- return true/false
+  good:=false;
 
-      _form := form::JSONB;
-      -- force a type
-      _form := _form || '{"type":"signin"}'::JSONB;
-      -- evaluate the token
-      _model_owner := current_setting('app.lb_guest_wgn')::jsonb;
-      if not(_model_owner ->> 'role' = _jwt_role) then
-          _validation := http_response('401','Unauthorized');
-          PERFORM wdn_schema_1_1_0.process_logger(_validation);
-          return _validation;
-      end if;
-      --
-      -- validate input form
-      -- confirm all required attributes are in form
-      -- validate attribute values
-      _validation := signin_validate(_form);
-      if _validation ->> 'status' != '200' then
-          PERFORM wdn_schema_1_1_0.process_logger(_validation);
-          return _validation;
-      end if;
-      -- remove password
-      _pw = _form ->> 'password';
-      _form := _form - 'password';
-      -- validate name and password
+  select payload ->> 'role' as role into actual_role  from verify(_token, current_setting('app.settings.jwt_secret'));
 
-      if not(exists(select reg_form from wdn_schema_1_1_0.register where reg_id = _form ->> 'name' and reg_form ->> 'password' = crypt(_pw, reg_form ->> 'password'))) then
-        -- login failure
-        _form := _form || '{"status":"404", "msg":"Not Found"}'::JSONB;
-        PERFORM wdn_schema_1_1_0.process_logger(_form);
-        return http_response('401','Unauthenticated');
-      end if;
+  if expected_role = actual_role then
+    good := true;
+  end if;
 
-      -- make signin_token
-      SELECT public.sign(
-        row_to_json(r), current_setting('app.settings.jwt_secret')
-      ) AS woden into signin_token
-      FROM (
-        SELECT
-          'LyttleBit' as iss,
-          'Woden'::text as name,
-          'Owner'::text as sub,
-          _form ->> 'name' as jti,
-          'editor_wdn'::text as role
-      ) r;
-      -- log success
-      _validation := _form || '{"status":"200"}'::JSONB;
+  RETURN good;
+END;  $$ LANGUAGE plpgsql;
 
-      PERFORM wdn_schema_1_1_0.process_logger(_validation);
-      -- test for owner account
-      -- wrap signin_token in JSON
-      return (SELECT row_to_json(r) as result
-        from (
-          SELECT
-          '200' as status,
-          'OK' as msg,
-          signin_token as token
-        ) r
-      );
+grant EXECUTE on FUNCTION wdn_schema_1_1_0.is_valid_token(TEXT, TEXT) to guest_wgn; -- C
+grant EXECUTE on FUNCTION wdn_schema_1_1_0.is_valid_token(TEXT, TEXT) to editor_wdn; -- C
 
-    END;
-  $$ LANGUAGE plpgsql;
-
-  grant EXECUTE on FUNCTION wdn_schema_1_1_0.signin(JSON) to guest_wgn; -- upsert
-
-
+----------------
+-- setup woden as user
+----------------
+insert into wdn_schema_1_1_0.register (reg_type, reg_form) values ('woden', (:lb_woden::JSONB || '{"type":"woden", "roles":"admin"}'::JSONB) );
 
 
     -----------------
@@ -576,8 +435,8 @@ insert into wdn_schema_1_1_0.register (reg_type, reg_form) values ('woden', (:lb
       Select reg_form from wdn_schema_1_1_0.register where reg_id=id and reg_type='app';
     $$ LANGUAGE sql;
 
-    -- grant guest_wgn to authenticator;
-    -- grant editor_wdn to authenticator;
+    grant guest_wgn to authenticator;
+    grant editor_wdn to authenticator;
     -----------------
     -- FUNCTION: owner
     -----------------
@@ -703,3 +562,126 @@ insert into wdn_schema_1_1_0.register (reg_type, reg_form) values ('woden', (:lb
     $$ LANGUAGE sql;
 
     grant EXECUTE on FUNCTION wdn_schema_1_1_0.owner(JSON) to editor_wdn; -- select
+
+
+
+        -----------------
+        -- FUNCTION: signin_validate
+        -----------------
+        -- Permissions: EXECUTE
+        -- Returns: JSONB
+        CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.signin_validate(form JSONB)
+        RETURNS JSONB
+        AS $$
+
+          BEGIN
+
+            -- confirm all required attributes are in form
+            if not(form ? 'type' and form ? 'name' and form ? 'password') then
+                return http_response('400', 'Bad Request, missing one or more form attributes.');
+            end if;
+            -- validate attribute values
+            if not(form ->> 'type' = 'signin') then
+                return http_response('400', 'Bad Request type value.');
+            end if;
+            -- proper password
+            if not (exists(select regexp_matches(form ->> 'password', '^(?=.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*\W).*$') )) then
+                return http_response('400', 'Bad Request, bad password.');
+            end if;
+            -- proper name ... name
+            if not( exists( select regexp_matches(form ->> 'name', '[a-z\-_0-9]+@[a-z]+\.[a-z]+') ) ) then
+              return http_response('400', format('Bad Request, bad name.'));
+            end if;
+
+            return http_response('200', 'OK');
+          END;
+        $$ LANGUAGE plpgsql;
+
+        grant EXECUTE on FUNCTION wdn_schema_1_1_0.signin_validate(JSONB) to guest_wgn; -- upsert
+
+
+        CREATE OR REPLACE FUNCTION wdn_schema_1_1_0.signin(form JSON) RETURNS JSON AS $$
+          -- make token to execute app(JSON)
+          declare rc JSONB;
+          declare signin_token TEXT;
+          declare process_error JSONB;
+          declare _form JSONB;
+          Declare _jwt_role TEXT;
+          Declare _model_owner JSONB;
+          Declare _validation JSONB;
+          Declare _pw TEXT;
+          BEGIN
+          -- claims check
+            _jwt_role := current_setting('request.jwt.claim.role','t');
+            if _jwt_role is NULL then
+              -- needed for tapps testing only
+              _jwt_role := 'guest_wgn';
+            end if;
+            if not(_jwt_role = 'guest_wgn') then
+              _validation := '{"status":"401", "msg":"Unauthorized"}'::JSONB;
+              PERFORM wdn_schema_1_1_0.process_logger(_validation);
+              return _validation;
+            end if;
+
+            _form := form::JSONB;
+            -- force a type
+            _form := _form || '{"type":"signin"}'::JSONB;
+            -- evaluate the token
+            _model_owner := current_setting('app.lb_guest_wgn')::jsonb;
+            if not(_model_owner ->> 'role' = _jwt_role) then
+                _validation := http_response('401','Unauthorized');
+                PERFORM wdn_schema_1_1_0.process_logger(_validation);
+                return _validation;
+            end if;
+            --
+            -- validate input form
+            -- confirm all required attributes are in form
+            -- validate attribute values
+            _validation := signin_validate(_form);
+            if _validation ->> 'status' != '200' then
+                PERFORM wdn_schema_1_1_0.process_logger(_validation);
+                return _validation;
+            end if;
+            -- remove password
+            _pw = _form ->> 'password';
+            _form := _form - 'password';
+            -- validate name and password
+
+            if not(exists(select reg_form from wdn_schema_1_1_0.register where reg_id = _form ->> 'name' and reg_form ->> 'password' = crypt(_pw, reg_form ->> 'password'))) then
+              -- login failure
+              _form := _form || '{"status":"404", "msg":"Not Found"}'::JSONB;
+              PERFORM wdn_schema_1_1_0.process_logger(_form);
+              return http_response('401','Unauthenticated');
+            end if;
+
+            -- make signin_token
+            SELECT public.sign(
+              row_to_json(r), current_setting('app.settings.jwt_secret')
+            ) AS woden into signin_token
+            FROM (
+              SELECT
+                'LyttleBit' as iss,
+                'Woden'::text as name,
+                'Owner'::text as sub,
+                _form ->> 'name' as jti,
+                'editor_wdn'::text as role
+            ) r;
+            -- log success
+            _validation := _form || '{"status":"200"}'::JSONB;
+
+            PERFORM wdn_schema_1_1_0.process_logger(_validation);
+            -- test for owner account
+            -- wrap signin_token in JSON
+            return (SELECT row_to_json(r) as result
+              from (
+                SELECT
+                '200' as status,
+                'OK' as msg,
+                signin_token as token
+              ) r
+            );
+
+          END;
+        $$ LANGUAGE plpgsql;
+
+        grant EXECUTE on FUNCTION wdn_schema_1_1_0.signin(JSON) to guest_wgn; -- upsert
